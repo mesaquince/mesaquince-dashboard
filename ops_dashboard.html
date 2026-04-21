@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mesaquince · OPS</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+  *{font-family:'Inter',system-ui,sans-serif;box-sizing:border-box;}
+  body{background:#f9fafb;margin:0;}
+
+  /* grids responsive */
+  .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .g21{display:grid;grid-template-columns:2fr 1fr;gap:12px;}
+  .g12{display:grid;grid-template-columns:1fr 2fr;gap:12px;}
+  @media(max-width:900px){
+    .g4{grid-template-columns:1fr 1fr;}
+    .g21,.g12{grid-template-columns:1fr;}
+    #input-panel{width:100%;right:-100%;}
+  }
+  @media(max-width:480px){
+    .g4{grid-template-columns:1fr 1fr;}
+    #wrap{padding:12px;}
+  }
+
+  /* BE progress bar */
+  .be-bar-bg{height:10px;background:#f3f4f6;border-radius:99px;overflow:hidden;}
+  .be-bar-fill{height:10px;border-radius:99px;transition:width 0.8s ease;}
+
+  /* panel */
+  #input-panel{position:fixed;top:0;right:-440px;width:420px;height:100vh;
+    background:#fff;box-shadow:-8px 0 40px rgba(0,0,0,0.12);
+    z-index:100;transition:right 0.3s cubic-bezier(0.4,0,0.2,1);display:flex;flex-direction:column;}
+  #input-panel.open{right:0;}
+  #overlay{position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:99;display:none;backdrop-filter:blur(2px);}
+  #overlay.show{display:block;}
+  #fab{position:fixed;bottom:28px;right:28px;width:56px;height:56px;
+    background:#f59e0b;border-radius:50%;border:none;cursor:pointer;
+    box-shadow:0 4px 16px rgba(245,158,11,0.5);font-size:28px;color:#fff;
+    z-index:98;transition:transform 0.2s;}
+  #fab:hover{transform:scale(1.08);}
+
+  .panel-tab{padding:10px 16px;font-size:13px;font-weight:600;border:none;
+    background:none;cursor:pointer;color:#9ca3af;border-bottom:2px solid transparent;}
+  .panel-tab.active{color:#f59e0b;border-bottom-color:#f59e0b;}
+  .fi{width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;
+    font-size:13px;color:#111;background:#f9fafb;outline:none;}
+  .fi:focus{border-color:#f59e0b;background:#fff;}
+  .fl{font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;
+    letter-spacing:0.05em;margin-bottom:5px;display:block;}
+  .fg{margin-bottom:14px;}
+  .bts{width:100%;padding:12px;background:#f59e0b;color:#fff;border:none;
+    border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;}
+  .bts:hover{background:#d97706;}
+  .bts:disabled{background:#d1d5db;cursor:not-allowed;}
+
+  .card{background:#fff;border-radius:16px;padding:20px;border:1px solid #f3f4f6;box-shadow:0 1px 4px rgba(0,0,0,0.04);}
+  .toggle-btn{font-size:12px;padding:6px 12px;border-radius:8px;border:none;cursor:pointer;font-weight:600;transition:all 0.15s;}
+  .toggle-btn.active{background:#fff;color:#111;box-shadow:0 1px 4px rgba(0,0,0,0.1);}
+  .toggle-btn.inactive{background:transparent;color:#9ca3af;}
+
+  #toast{position:fixed;bottom:100px;right:28px;padding:12px 20px;border-radius:10px;
+    font-size:13px;font-weight:600;z-index:200;opacity:0;transform:translateY(10px);
+    transition:all 0.3s;pointer-events:none;color:#fff;}
+  #toast.show{opacity:1;transform:translateY(0);}
+  #toast.success{background:#10b981;}
+  #toast.error{background:#ef4444;}
+
+  .spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);
+    border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite;display:inline-block;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<!-- OVERLAY + PANEL -->
+<div id="overlay" onclick="closePanel()"></div>
+<div id="input-panel">
+  <div style="padding:20px 20px 0;border-bottom:1px solid #f3f4f6;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <span style="font-size:16px;font-weight:800;color:#111;">Registrar</span>
+      <button onclick="closePanel()" style="background:none;border:none;font-size:22px;color:#9ca3af;cursor:pointer;">×</button>
+    </div>
+    <div style="display:flex;gap:4px;">
+      <button class="panel-tab active" id="tab-venta"   onclick="switchTab('venta')">💰 Venta</button>
+      <button class="panel-tab"        id="tab-factura" onclick="switchTab('factura')">📄 Factura</button>
+      <button class="panel-tab"        id="tab-pagar"   onclick="switchTab('pagar')">✅ Pagado</button>
+    </div>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:20px;">
+
+    <!-- VENTA -->
+    <div id="form-venta">
+      <div class="fg"><label class="fl">Fecha</label><input class="fi" type="date" id="v-fecha"/></div>
+      <div class="fg"><label class="fl">Servicio</label>
+        <select class="fi" id="v-servicio">
+          <option value="almuerzo">Almuerzo</option>
+          <option value="cena">Cena</option>
+          <option value="tardeo">Tardeo</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="fg"><label class="fl">Ventas (€)</label><input class="fi" type="number" id="v-ventas" placeholder="0.00" step="0.01" min="0"/></div>
+        <div class="fg"><label class="fl">Cubiertos</label><input class="fi" type="number" id="v-cubiertos" placeholder="0" min="0"/></div>
+      </div>
+      <div class="fg"><label class="fl">Propina (€) <span style="color:#d1d5db;font-weight:400;">opcional</span></label>
+        <input class="fi" type="number" id="v-propina" placeholder="0.00" step="0.01" min="0"/></div>
+      <div class="fg"><label class="fl">Notas <span style="color:#d1d5db;font-weight:400;">opcional</span></label>
+        <input class="fi" type="text" id="v-notas" placeholder="Ej: lleno, evento..."/></div>
+      <button class="bts" id="btn-venta" onclick="submitVenta()">Guardar venta</button>
+    </div>
+
+    <!-- FACTURA -->
+    <div id="form-factura" style="display:none;">
+      <div class="fg"><label class="fl">Proveedor</label><input class="fi" type="text" id="f-proveedor" placeholder="Makro, Gas Natural..."/></div>
+      <div class="fg"><label class="fl">Descripción</label><input class="fi" type="text" id="f-descripcion" placeholder="Compra semanal..."/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="fg"><label class="fl">Importe (€)</label><input class="fi" type="number" id="f-importe" placeholder="0.00" step="0.01" min="0"/></div>
+        <div class="fg"><label class="fl">Vencimiento</label><input class="fi" type="date" id="f-vencimiento"/></div>
+      </div>
+      <div class="fg"><label class="fl">Categoría</label>
+        <select class="fi" id="f-categoria">
+          <option value="Proveedores">Proveedores</option>
+          <option value="Servicios">Servicios</option>
+          <option value="Local">Local / Alquiler</option>
+          <option value="Personal">Personal</option>
+          <option value="Otros">Otros</option>
+        </select>
+      </div>
+      <button class="bts" id="btn-factura" onclick="submitFactura()">Guardar factura</button>
+    </div>
+
+    <!-- PAGAR -->
+    <div id="form-pagar" style="display:none;">
+      <p style="font-size:12px;color:#9ca3af;margin:0 0 16px;">Marcá como pagada una factura pendiente.</p>
+      <div id="pending-list"><p style="font-size:13px;color:#9ca3af;text-align:center;padding:20px;">Cargando...</p></div>
+    </div>
+  </div>
+</div>
+
+<button id="fab" onclick="openPanel('venta')">＋</button>
+<div id="toast"></div>
+
+<!-- HEADER -->
+<div style="background:#fff;border-bottom:1px solid #f3f4f6;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;">
+  <div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="font-size:20px;font-weight:900;color:#111;letter-spacing:-0.03em;">Mesaquince</span>
+      <span style="background:#fef3c7;color:#b45309;font-size:11px;padding:2px 9px;border-radius:20px;font-weight:700;">OPS DAILY</span>
+    </div>
+    <p id="sync-label" style="font-size:12px;color:#9ca3af;margin:2px 0 0;">Cargando...</p>
+  </div>
+  <button onclick="loadAllData()" id="refresh-btn" style="display:flex;align-items:center;gap:6px;font-size:12px;color:#6b7280;border:1px solid #e5e7eb;border-radius:10px;padding:7px 12px;background:#fff;cursor:pointer;">
+    ↻ Actualizar
+  </button>
+</div>
+
+<div id="wrap" style="max-width:1280px;margin:0 auto;padding:20px 24px;">
+
+  <!-- BE HERO -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+      <div>
+        <p style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.06em;margin:0 0 4px;">Objetivo semana · Break Even</p>
+        <div style="display:flex;align-items:baseline;gap:8px;">
+          <span id="be-ventas" style="font-size:32px;font-weight:900;color:#111;">—</span>
+          <span style="font-size:16px;color:#9ca3af;">/ <span id="be-objetivo">—</span></span>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <p style="font-size:11px;color:#9ca3af;margin:0 0 4px;">Faltan</p>
+        <p id="be-gap" style="font-size:24px;font-weight:800;color:#ef4444;margin:0;">—</p>
+      </div>
+    </div>
+    <div class="be-bar-bg">
+      <div class="be-bar-fill" id="be-bar" style="width:0%;background:#f59e0b;"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:8px;">
+      <div style="display:flex;gap:20px;">
+        <div>
+          <p style="font-size:11px;color:#9ca3af;margin:0 0 2px;">Ticket medio (7d)</p>
+          <p id="be-ticket" style="font-size:15px;font-weight:700;color:#111;margin:0;">—</p>
+        </div>
+        <div>
+          <p style="font-size:11px;color:#9ca3af;margin:0 0 2px;">Cubiertos necesarios</p>
+          <p id="be-cub-needed" style="font-size:15px;font-weight:700;color:#111;margin:0;">—</p>
+        </div>
+        <div>
+          <p style="font-size:11px;color:#9ca3af;margin:0 0 2px;">Por noche (días restantes)</p>
+          <p id="be-per-night" style="font-size:15px;font-weight:700;color:#f59e0b;margin:0;">—</p>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <p style="font-size:11px;color:#9ca3af;margin:0 0 2px;">Ocupación semana</p>
+        <p id="be-ocupacion" style="font-size:15px;font-weight:700;color:#111;margin:0;">—</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI ROW -->
+  <div class="g4" style="margin-bottom:16px;">
+    <div class="card">
+      <p style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.06em;margin:0 0 8px;">Ventas Ayer</p>
+      <p id="kpi-hoy" style="font-size:24px;font-weight:800;color:#111;margin:0 0 4px;">—</p>
+      <p id="kpi-hoy-delta" style="font-size:12px;font-weight:600;color:#9ca3af;margin:0;"></p>
+    </div>
+    <div class="card">
+      <p style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.06em;margin:0 0 8px;">Cubiertos Ayer</p>
+      <p id="kpi-cub" style="font-size:24px;font-weight:800;color:#111;margin:0 0 4px;">—</p>
+      <p id="kpi-cub-delta" style="font-size:12px;font-weight:600;color:#9ca3af;margin:0;"></p>
+    </div>
+    <div class="card">
+      <p style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.06em;margin:0 0 8px;">Ticket Medio Ayer</p>
+      <p id="kpi-ticket" style="font-size:24px;font-weight:800;color:#111;margin:0 0 4px;">—</p>
+      <p id="kpi-ticket-sub" style="font-size:12px;color:#9ca3af;margin:0;"></p>
+    </div>
+    <div class="card">
+      <p style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.06em;margin:0 0 8px;">Pagos Urgentes</p>
+      <p id="kpi-ap" style="font-size:24px;font-weight:800;color:#dc2626;margin:0 0 4px;">—</p>
+      <p id="kpi-ap-sub" style="font-size:12px;color:#9ca3af;margin:0;"></p>
+    </div>
+  </div>
+
+  <!-- CHART + RESERVATIONS -->
+  <div class="g21" style="margin-bottom:16px;">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+        <div>
+          <h2 style="font-size:15px;font-weight:700;color:#111;margin:0 0 2px;">Ventas diarias — 14 días</h2>
+          <p id="chart-delta-label" style="font-size:12px;font-weight:600;color:#9ca3af;margin:0;"></p>
+        </div>
+        <div style="display:flex;background:#f3f4f6;border-radius:10px;padding:3px;gap:3px;">
+          <button class="toggle-btn active" id="btn-wow" onclick="setChartMode('wow')">WoW</button>
+          <button class="toggle-btn inactive" id="btn-yoy" onclick="setChartMode('yoy')">YoY</button>
+        </div>
+      </div>
+      <canvas id="salesChart"></canvas>
+      <div style="display:flex;align-items:center;gap:16px;margin-top:10px;padding-top:10px;border-top:1px solid #f9fafb;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="width:10px;height:10px;border-radius:3px;background:#f59e0b;"></div>
+          <span style="font-size:12px;color:#6b7280;">Esta semana</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="width:10px;height:10px;border-radius:3px;background:#e5e7eb;"></div>
+          <span id="chart-legend-label" style="font-size:12px;color:#6b7280;">Sem. anterior</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="width:10px;height:10px;border-radius:3px;background:#fde68a;"></div>
+          <span style="font-size:12px;color:#6b7280;">BE diario</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reservas & Forecast -->
+    <div class="card" style="display:flex;flex-direction:column;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+        <div>
+          <h2 style="font-size:15px;font-weight:700;color:#111;margin:0 0 2px;">Reservas & Forecast</h2>
+          <p style="font-size:12px;color:#9ca3af;margin:0;">Cubiertos esperados × ticket promedio</p>
+        </div>
+        <div style="text-align:right;">
+          <p style="font-size:11px;color:#9ca3af;margin:0 0 2px;">Ticket (7d)</p>
+          <p id="tk-display" style="font-size:18px;font-weight:800;color:#111;margin:0;">—</p>
+        </div>
+      </div>
+      <div id="res-forecast" style="margin-bottom:8px;"></div>
+      <div id="res-list" style="display:flex;flex-direction:column;gap:6px;flex:1;overflow-y:auto;max-height:310px;"></div>
+    </div>
+  </div>
+
+  <!-- WEEKLY TABLE + AP -->
+  <div class="g12">
+    <!-- Weekly breakdown -->
+    <div class="card">
+      <h2 style="font-size:15px;font-weight:700;color:#111;margin:0 0 16px;">Semana actual — por día</h2>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;" id="weekly-table">
+          <thead>
+            <tr style="border-bottom:1px solid #f3f4f6;">
+              <th style="text-align:left;padding:6px 8px;color:#9ca3af;font-weight:600;">Día</th>
+              <th style="text-align:right;padding:6px 8px;color:#9ca3af;font-weight:600;">Ventas</th>
+              <th style="text-align:right;padding:6px 8px;color:#9ca3af;font-weight:600;">Cub.</th>
+              <th style="text-align:right;padding:6px 8px;color:#9ca3af;font-weight:600;">Ticket</th>
+              <th style="text-align:right;padding:6px 8px;color:#9ca3af;font-weight:600;">WoW</th>
+            </tr>
+          </thead>
+          <tbody id="weekly-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- AP -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+        <div>
+          <h2 style="font-size:15px;font-weight:700;color:#111;margin:0 0 2px;">💳 Cuentas a Pagar</h2>
+          <p style="font-size:12px;color:#9ca3af;margin:0;">Vencimientos próximos</p>
+        </div>
+        <div style="text-align:right;">
+          <p style="font-size:11px;color:#9ca3af;margin:0 0 2px;">Total urgente</p>
+          <p id="ap-total-label" style="font-size:18px;font-weight:800;color:#dc2626;margin:0;">—</p>
+        </div>
+      </div>
+      <div id="ap-list-main"></div>
+      <button id="ap-toggle" onclick="toggleAP()" style="width:100%;font-size:12px;color:#9ca3af;background:none;border:none;border-top:1px solid #f3f4f6;padding-top:10px;margin-top:10px;cursor:pointer;"></button>
+    </div>
+  </div>
+
+  <p style="text-align:center;font-size:11px;color:#d1d5db;margin-top:16px;padding-bottom:20px;">
+    Mesaquince · The Brasa Club · Dashboard Operativo v3.0
+  </p>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────
+const CONFIG = {
+  SHEET_ID:     '1PSfQ0sLzq8SbkxKQRZxHmPjtYuvXCElu6iKTsMk0SfY',
+  SHEETDB_URL:  'https://script.google.com/macros/s/AKfycbwICx_HrAvhi1KHQQ38y6THjFtO156HbYqYs97It3wxDxjLSYjEZZN5JvPoOajPy32eHg/exec',
+  BE_MENSUAL:   32917.70,
+  CAP_SEMANAL:  500,   // cubiertos realistas/semana (1 sentada)
+};
+
+const BE_SEMANAL = CONFIG.BE_MENSUAL / 4; // 4 semanas operativas/mes → beDiario = BE_SEMANAL/5 ≈ €1.650
+
+// ── STATE ─────────────────────────────────────────────────
+let state = { ventas:[], ap:[], cubReservados:{} };
+let salesChart = null;
+let chartMode  = 'wow';
+let apExpanded = false;
+
+// ── HELPERS ───────────────────────────────────────────────
+const fmt  = n  => n != null ? '€'+n.toLocaleString('es-ES',{minimumFractionDigits:0,maximumFractionDigits:0}) : '—';
+const fmtD = n  => n != null ? n.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+const today   = () => new Date().toISOString().split('T')[0];
+const addDays = (iso, d) => new Date(new Date(iso).getTime() + d*86400000).toISOString().split('T')[0];
+const monday  = (ref = today()) => { const d=new Date(ref); const day=d.getDay()||7; d.setDate(d.getDate()-day+1); return d.toISOString().split('T')[0]; };
+const dayNames = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const isoToShort = iso => { const [,m,d]=iso.split('-'); const months=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']; return `${parseInt(d)} ${months[parseInt(m)-1]}`; };
+const isoToDayName = iso => dayNames[new Date(iso).getDay()];
+
+function ventasSuma(ventas, fechaInicio, fechaFin) {
+  return ventas.filter(v=>v.fecha>=fechaInicio&&v.fecha<=fechaFin).reduce((s,v)=>({ventas:s.ventas+v.ventas,cubiertos:s.cubiertos+v.cubiertos}),{ventas:0,cubiertos:0});
+}
+
+function ticketMedio7d() {
+  const desde = addDays(today(), -7);
+  const r = state.ventas.filter(v=>v.fecha>=desde);
+  const tv = r.reduce((s,v)=>s+v.ventas,0);
+  const tc = r.reduce((s,v)=>s+v.cubiertos,0);
+  return tc > 0 ? tv/tc : 44;
+}
+
+function diasNocheRestantes() {
+  // Días de cena restantes en la semana (mar=2,mié=3,jue=4,vie=5,sáb=6)
+  const d = new Date(); const dow = d.getDay();
+  const cenaDays = [2,3,4,5,6];
+  return cenaDays.filter(x => x > dow).length;
+}
+
+// ── DATA LOADING ──────────────────────────────────────────
+async function fetchSheetData(tab) {
+  const res = await fetch(`${CONFIG.SHEETDB_URL}?sheet=${encodeURIComponent(tab)}`);
+  if (!res.ok) throw new Error(`SheetDB ${res.status}`);
+  return res.json();
+}
+function parseVentas(rows) {
+  if (!Array.isArray(rows)) return [];
+  return rows.map(r=>({
+    fecha:     String(r.fecha||'').trim().substring(0,10),
+    servicio:  String(r.servicio||'').trim(),
+    ventas:    parseFloat(r.ventas)||0,
+    cubiertos: parseInt(r.cubiertos)||0,
+    propina:   parseFloat(r.propina)||0,
+    notas:     String(r.notas||'').trim(),
+  })).filter(r=>r.fecha&&r.ventas>0);
+}
+function parseAP(rows) {
+  if (!Array.isArray(rows)) return [];
+  return rows.map(r=>({
+    proveedor:   String(r.proveedor||'').trim(),
+    descripcion: String(r.descripcion||'').trim(),
+    importe:     parseFloat(r.importe)||0,
+    vencimiento: String(r.vencimiento||'').trim(),
+    categoria:   String(r.categoria||'Otros').trim(),
+    estado:      String(r.estado||'pendiente').trim(),
+  })).filter(r=>r.proveedor);
+}
+
+async function loadAllData() {
+  document.getElementById('refresh-btn').innerHTML = '<span class="spinner"></span>';
+  try {
+    const [vRaw, apRaw] = await Promise.all([fetchSheetData('Ventas'), fetchSheetData('AP')]);
+    state.ventas = parseVentas(vRaw);
+    state.ap     = parseAP(apRaw);
+    renderAll();
+    const now = new Date();
+    document.getElementById('sync-label').textContent =
+      `${now.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} · Sync ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+  } catch(e) {
+    console.error(e);
+    showToast('Error: '+e.message,'error');
+  }
+  document.getElementById('refresh-btn').innerHTML = '↻ Actualizar';
+}
+
+// ── RENDER ALL ────────────────────────────────────────────
+function renderAll() {
+  renderBE();
+  renderKPIs();
+  renderSalesChart();
+  renderReservations();
+  renderWeeklyTable();
+  renderAP();
+  renderPendingList();
+}
+
+// ── BE HERO ───────────────────────────────────────────────
+function renderBE() {
+  const mon = monday();
+  const td  = today();
+  const { ventas: ventasSem, cubiertos: cubSem } = ventasSuma(state.ventas, mon, td);
+  const tk   = ticketMedio7d();
+  const gap  = Math.max(0, BE_SEMANAL - ventasSem);
+  const pct  = Math.min(100, (ventasSem / BE_SEMANAL) * 100);
+  const cubNeeded = tk > 0 ? Math.ceil(gap / tk) : 0;
+  const noches    = diasNocheRestantes();
+  const perNoche  = noches > 0 ? Math.ceil(cubNeeded / noches) : cubNeeded;
+  const ocupacion = CONFIG.CAP_SEMANAL > 0 ? ((cubSem / CONFIG.CAP_SEMANAL) * 100).toFixed(0) : 0;
+
+  document.getElementById('be-ventas').textContent     = fmt(ventasSem);
+  document.getElementById('be-objetivo').textContent   = fmt(Math.round(BE_SEMANAL));
+  document.getElementById('be-gap').textContent        = gap > 0 ? fmt(gap) : '✓ BE alcanzado';
+  document.getElementById('be-gap').style.color        = gap > 0 ? '#ef4444' : '#10b981';
+  document.getElementById('be-bar').style.width        = pct + '%';
+  document.getElementById('be-bar').style.background   = pct >= 100 ? '#10b981' : pct > 60 ? '#f59e0b' : '#ef4444';
+  document.getElementById('be-ticket').textContent     = '€' + tk.toFixed(2);
+  document.getElementById('be-cub-needed').textContent = gap > 0 ? `${cubNeeded} cubiertos` : '—';
+  document.getElementById('be-per-night').textContent  = gap > 0 && noches > 0 ? `${perNoche}/noche` : gap > 0 ? `${cubNeeded} hoy` : '—';
+  document.getElementById('be-ocupacion').textContent  = `${ocupacion}% (${cubSem} cub.)`;
+  document.getElementById('tk-display').textContent    = tk.toFixed(2);
+}
+
+// ── KPIs ──────────────────────────────────────────────────
+function renderKPIs() {
+  const td         = today();
+  const ayer       = addDays(td, -1);
+  const ayerLW     = addDays(td, -8);
+  // Dom=0, Lun=1 son días de cierre → mostrar "Cerrado" en vez de 0/-100%
+  const ayerDow    = new Date(ayer).getDay();
+  const ayerCerrado = (ayerDow === 0 || ayerDow === 1);
+  const { ventas:va, cubiertos:ca } = ventasSuma(state.ventas, ayer, ayer);
+  const { ventas:vl, cubiertos:cl } = ventasSuma(state.ventas, ayerLW, ayerLW);
+  const tkAyer  = ca > 0 ? va/ca : null;
+  const tkAyerLW= cl > 0 ? vl/cl : null;
+  const deltaV  = (!ayerCerrado && vl > 0) ? ((va-vl)/vl*100) : null;
+  const deltaC  = (!ayerCerrado && cl > 0) ? ((ca-cl)/cl*100) : null;
+  const deltaT  = (!ayerCerrado && tkAyerLW) ? ((tkAyer-tkAyerLW)/tkAyerLW*100) : null;
+
+  const dv = (v,l,el) => {
+    if (ayerCerrado && !va) { document.getElementById(el).innerHTML='<span style="color:#9ca3af;font-size:11px;">Día cerrado</span>'; return; }
+    if (v==null) { document.getElementById(el).textContent='—'; return; }
+    const up=v>=0;
+    document.getElementById(el).innerHTML<`<span style="color:${up?'#10b981':'#ef4444'}">${up?'↗':'↘'} ${Math.abs(v).toFixed(1)}% vs sem. ant.</span>`;
+  };
+
+  // Si ayer fue día cerrado y sin venta → mostrar "Cerrado"
+  const labelCerrado = '<span style="color:#9ca3af;font-size:12px;">Cerrado</span>';
+  document.getElementById('kpi-hoy').innerHTML    = ayerCerrado && !va ? labelCerrado : (va>0 ? fmt(va) : '—');
+  document.getElementById('kpi-cub').innerHTML    = ayerCerrado && !va ? labelCerrado : (ca>0 ? `${ca} cub.` : '—');
+  document.getElementById('kpi-ticket').innerHTML = ayerCerrado && !va ? labelCerrado : (tkAyer ? `€${tkAyer.toFixed(2)}` : '—');
+  dv(deltaV, null, 'kpi-hoy-delta');
+  dv(deltaC, null, 'kpi-cub-delta');
+  document.getElementById('kpi-ticket-sub').innerHTML = ayerCerrado && !va
+    ? '<span style="color:#9ca3af;font-size:11px;">Día cerrado</span>'
+    : deltaT!=null
+      ? `<span style="color:${deltaT>=0?'#10b981':'#ef4444'}">${deltaT>=0?'↗':'↘'} ${Math.abs(deltaT).toFixed(1)}% vs sem. ant.</span>`
+      : '<span style="color:#9ca3af">Sin comparativa</span>';
+
+  const urgente = state.ap.filter(ap=>ap.estado==='pendiente'&&daysUntil(ap.vencimiento)<=3);
+  const totalU  = urgente.reduce((s,ap)=>s+ap.importe,0);
+  document.getElementById('kpi-ap').textContent    = fmt(totalU)||'€0';
+  document.getElementById('kpi-ap-sub').textContent= `${urgente.length} factura${urgente.length!==1?'s':''} urgente${urgente.length!==1?'s':''}`;
+}
+
+// ── SALES CHART ───────────────────────────────────────────
+function renderSalesChart() {
+  const days=[], thisVals=[], compareVals=[], beVals=[];
+  const beDiario = BE_SEMANAL / 5; // BE por día operativo ≈ €1.650
+  // Dom=0, Lun=1 son días de cierre
+  const esCerrado = iso => { const d = new Date(iso).getDay(); return d===0||d===1; };
+
+  for (let i=13;i>=0;i--) {
+    const iso    = addDays(today(), -i);
+    const offset = chartMode==='wow' ? 7 : 364;
+    const cmpIso = addDays(iso, -offset);
+    days.push(isoToShort(iso));
+    const tv = state.ventas.filter(v=>v.fecha===iso).reduce((s,v)=>s+v.ventas,0);
+    const cv = state.ventas.filter(v=>v.fecha===cmpIso).reduce((s,v)=>s+v.ventas,0);
+    thisVals.push(tv||null);
+    compareVals.push(cv||null);
+    // Línea BE: solo en días operativos o en días cerrados con evento (venta > 0)
+    beVals.push(esCerrado(iso) && !tv ? null : beDiario);
+  }
+
+  const compareLabel = chartMode==='wow' ? 'Sem. anterior' : 'Año anterior';
+  const ctx = document.getElementById('salesChart').getContext('2d');
+  if (salesChart) salesChart.destroy();
+
+  salesChart = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: days,
+      datasets:[
+        {label:'Esta semana', data:thisVals,    backgroundColor:'#f59e0b', borderRadius:5, borderSkipped:false, order:1},
+        {label:compareLabel,  data:compareVals, backgroundColor:'#e5e7eb', borderRadius:5, borderSkipped:false, order:2},
+        {label:'BE diario',   data:beVals, type:'line',
+          borderColor:'#fbbf24', borderWidth:1.5, borderDash:[4,3],
+          pointRadius:0, fill:false, order:0},
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:true, aspectRatio:2.4,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{label:c=>c.raw!=null?`${c.dataset.label}: ${fmt(c.raw)}`:'—'},
+          backgroundColor:'#fff',titleColor:'#374151',bodyColor:'#6b7280',
+          borderColor:'#f3f4f6',borderWidth:1,padding:10,cornerRadius:10,
+        }
+      },
+      scales:{
+        x:{grid:{display:false},border:{display:false},ticks:{color:'#9ca3af',font:{size:10}}},
+        y:{grid:{color:'#f3f4f6'},border:{display:false},
+          ticks:{color:'#9ca3af',font:{size:11},callback:v=>`€${(v/1000).toFixed(1)}k`}}
+      }
+    }
+  });
+
+  const thisTotal = thisVals.filter(Boolean).reduce((a,b)=>a+b,0);
+  const cmpTotal  = compareVals.filter(Boolean).reduce((a,b)=>a+b,0);
+  const delta = cmpTotal>0 ? ((thisTotal-cmpTotal)/cmpTotal*100) : null;
+  const ml = chartMode==='wow'?'WoW':'YoY';
+  document.getElementById('chart-legend-label').textContent = compareLabel;
+  document.getElementById('chart-delta-label').innerHTML = delta!=null
+    ? `<span style="color:${delta>=0?'#10b981':'#ef4444'}">${delta>=0?'↗':'↘'} ${delta>=0?'+':''}${delta.toFixed(1)}% ${ml}</span>`
+    : `<span style="color:#9ca3af">Sin datos comparativos ${ml}</span>`;
+}
+
+function setChartMode(mode) {
+  chartMode=mode;
+  document.getElementById('btn-wow').className='toggle-btn '+(mode==='wow'?'active':'inactive');
+  document.getElementById('btn-yoy').className='toggle-btn '+(mode==='yoy'?'active':'inactive');
+  renderSalesChart();
+}
+
+// ── RESERVATIONS ──────────────────────────────────────────
+// Dom=0, Lun=1 → cerrado (salvo reserva excepcional)
+const DIAS_CERRADO = [0, 1];
+
+function updateReserva(iso, val) {
+  const cub = parseInt(val) || 0;
+  if (cub > 0) state.cubReservados[iso] = cub;
+  else delete state.cubReservados[iso];
+  renderReservations();
+  renderBE();
+}
+
+function renderReservations() {
+  const tk  = ticketMedio7d();
+  const td  = today();
+  const mon = monday();
+
+  // Días abiertos de la semana actual
+  const diasSemana = [];
+  for (let i = 0; i < 7; i++) {
+    const iso = addDays(mon, i);
+    if (!DIAS_CERRADO.includes(new Date(iso).getDay())) diasSemana.push(iso);
+  }
+
+  // Real acumulado esta semana (hasta hoy inclusive)
+  const { ventas: ventasReal } = ventasSuma(state.ventas, mon, td);
+
+  // Proyectado: días futuros de esta semana con cubiertos ingresados
+  let proyectado = 0;
+  diasSemana.filter(iso => iso > td).forEach(iso => {
+    proyectado += (state.cubReservados[iso] || 0) * tk;
+  });
+
+  const forecastTotal = ventasReal + proyectado;
+  const gapForecast   = Math.max(0, BE_SEMANAL - forecastTotal);
+  const pctReal       = Math.min(100, (ventasReal / BE_SEMANAL) * 100);
+  const pctForecast   = Math.min(100, (forecastTotal / BE_SEMANAL) * 100);
+
+  // Forecast summary
+  const forecastHtml = `
+    <div style="background:#f9fafb;border-radius:12px;padding:12px 14px;border:1px solid #f3f4f6;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Forecast semana</span>
+        <span style="font-size:17px;font-weight:900;color:${gapForecast===0?'#10b981':'#111'};">${fmt(Math.round(forecastTotal))}</span>
+      </div>
+      <div style="position:relative;height:10px;background:#f3f4f6;border-radius:99px;overflow:hidden;margin-bottom:6px;">
+        <div style="position:absolute;left:0;top:0;height:100%;border-radius:99px;background:#f59e0b;opacity:0.35;transition:width 0.6s ease;width:${pctForecast.toFixed(1)}%;"></div>
+        <div style="position:absolute;left:0;top:0;height:100%;border-radius:99px;background:#10b981;transition:width 0.6s ease;width:${pctReal.toFixed(1)}%;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-bottom:6px;">
+        <div style="display:flex;gap:12px;">
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:2px;background:#10b981;display:inline-block;"></span>Real <strong style="color:#111;">${fmt(Math.round(ventasReal))}</strong></span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:2px;background:#f59e0b;opacity:0.6;display:inline-block;"></span>Proyect. <strong style="color:#f59e0b;">${proyectado>0?fmt(Math.round(proyectado)):'—'}</strong></span>
+        </div>
+        <span style="color:#9ca3af;">BE ${fmt(Math.round(BE_SEMANAL))}</span>
+      </div>
+      ${gapForecast>0
+        ? `<div style="padding:6px 10px;background:#fef2f2;border-radius:8px;font-size:12px;color:#dc2626;font-weight:600;">Falta cubrir ${fmt(Math.round(gapForecast))} con las noches restantes</div>`
+        : `<div style="padding:6px 10px;background:#f0fdf4;border-radius:8px;font-size:12px;color:#16a34a;font-weight:600;">✓ Break even cubierto con las reservas proyectadas</div>`
+      }
+    </div>`;
+
+  // Próximos 7 días abiertos desde hoy
+  const diasMostrar = [];
+  let i = 0;
+  while (diasMostrar.length < 7) {
+    const iso = addDays(td, i++);
+    if (!DIAS_CERRADO.includes(new Date(iso).getDay())) diasMostrar.push(iso);
+  }
+
+  const sunMon = addDays(mon, 6); // fin de la semana actual (domingo)
+
+  const html = diasMostrar.map(iso => {
+    const isToday  = iso === td;
+    const isPast   = iso < td;
+    const dayLabel = isoToDayName(iso);
+    const isThisWeek = iso <= sunMon;
+    const { ventas: v, cubiertos: c } = ventasSuma(state.ventas, iso, iso);
+    const hasDatos = c > 0;
+
+    if (isPast || (isToday && hasDatos)) {
+      // Pasado o hoy ya registrado: mostrar real
+      const tkDia = c > 0 ? (v/c).toFixed(0) : null;
+      return `<div style="border-radius:10px;padding:9px 12px;${isToday?'background:#fffbeb;border:1px solid #fde68a;':'background:#f9fafb;'}">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:12px;font-weight:700;color:${isToday?'#92400e':'#374151'};">${dayLabel} <span style="font-weight:400;color:#9ca3af;">${isoToShort(iso)}</span></span>
+          <span style="font-size:13px;font-weight:800;color:${hasDatos?'#111':'#d1d5db'};">${hasDatos?fmt(v):'—'}</span>
+        </div>
+        ${hasDatos
+          ? `<div style="font-size:11px;color:#9ca3af;margin-top:2px;">${c} cub. · €${tkDia}/cub.</div>`
+          : `<div style="font-size:11px;color:#d1d5db;margin-top:2px;">Sin registro</div>`}
+      </div>`;
+    }
+
+    // Futuro o hoy sin datos: input editable
+    const cubRes = state.cubReservados[iso] || '';
+    const estRev = cubRes ? Math.round(cubRes * tk) : null;
+    return `<div style="border-radius:10px;padding:9px 12px;background:#fff;border:1px solid ${estRev?'#fde68a':'#f3f4f6'};">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <span style="font-size:12px;font-weight:700;color:${isToday?'#92400e':'#374151'};flex:1;">
+          ${dayLabel} <span style="font-weight:400;color:#9ca3af;">${isoToShort(iso)}</span>
+          ${!isThisWeek?'<span style="font-size:10px;font-weight:400;color:#d1d5db;margin-left:4px;">prox. sem.</span>':''}
+        </span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <input type="number" min="0" max="500" value="${cubRes}" placeholder="—"
+            style="width:52px;padding:5px 6px;border:1px solid #e5e7eb;border-radius:8px;font-size:12px;font-weight:700;text-align:center;color:#111;background:#f9fafb;outline:none;"
+            oninput="updateReserva('${iso}',this.value)"
+            onfocus="this.style.borderColor='#f59e0b';this.style.background='#fff';"
+            onblur="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb';"
+          />
+          <span style="font-size:11px;color:#9ca3af;">cub.</span>
+          <span style="font-size:13px;font-weight:800;min-width:58px;text-align:right;color:${estRev?'#f59e0b':'#e5e7eb'};">${estRev?fmt(estRev):'—'}</span>
+        </div>
+      </div>
+      <div style="font-size:11px;color:#9ca3af;margin-top:2px;">${estRev?`€${tk.toFixed(0)}/cub. promedio`:'Ingresá cubiertos para proyectar'}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('tk-display').textContent = '€' + tk.toFixed(0);
+  document.getElementById('res-forecast').innerHTML = forecastHtml;
+  document.getElementById('res-list').innerHTML = html;
+}
+
+// ── WEEKLY TABLE ──────────────────────────────────────────
+function renderWeeklyTable() {
+  const mon  = monday();
+  const rows = [];
+  for (let i=0;i<7;i++) {
+    const iso    = addDays(mon,i);
+    const isoLW  = addDays(iso,-7);
+    if (iso>today()) continue;
+    const {ventas:v,cubiertos:c} = ventasSuma(state.ventas,iso,iso);
+    const {ventas:vl}             = ventasSuma(state.ventas,isoLW,isoLW);
+    const tk   = c>0 ? v/c : null;
+    const delta= vl>0 ? ((v-vl)/vl*100) : null;
+    rows.push({iso,v,c,tk,delta});
+  }
+
+  const tbody = document.getElementById('weekly-tbody');
+  if (rows.length===0) { tbody.innerHTML<`<tr><td colspan="5" style="text-align:center;padding:20px;color:#9ca3af;font-size:13px;">Sin datos esta semana</td></tr>`; return; }
+
+  tbody.innerHTML = rows.map(r=>{
+    const isToday = r.iso===today();
+    const deltaHtml = r.delta!=null
+      ? `<span style="color:${r.delta>=0?'#10b981':'#ef4444'};font-weight:600;">${r.delta>=0?'+':''}${r.delta.toFixed(0)}%</span>`
+      : '<span style="color:#d1d5db">—</span>';
+    return `<tr style="border-bottom:1px solid #f9fafb;${isToday?'background:#fffbeb;':''}">
+      <td style="padding:8px;font-weight:${isToday?'700':'500'};color:#374151;">${isoToDayName(r.iso)} <span style="color:#9ca3af;font-weight:400;">${isoToShort(r.iso)}</span></td>
+      <td style="text-align:right;padding:8px;font-weight:600;color:#111;">${r.v>0?fmt(r.v):'—'}</td>
+      <td style="text-align:right;padding:8px;color:#374151;">${r.c>0?r.c:'—'}</td>
+      <td style="text-align:right;padding:8px;color:#374151;">${r.tk?'€'+r.tk.toFixed(0):'—'}</td>
+      <td style="text-align:right;padding:8px;">${deltaHtml}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── AP ────────────────────────────────────────────────────
+function daysUntil(iso) { return Math.ceil((new Date(iso)-new Date(today()))/(86400000)); }
+
+function renderAP() {
+  const pending = state.ap.filter(ap=>ap.estado==='pendiente');
+  const urgent  = pending.filter(ap=>daysUntil(ap.vencimiento)<=3);
+  const totalU  = urgent.reduce((s,ap)=>s+ap.importe,0);
+  document.getElementById('ap-total-label').textContent = fmt(totalU)||'€0';
+
+  const toShow = apExpanded ? pending : pending.slice(0,4);
+  const getS = ap => {
+    const d=daysUntil(ap.vencimiento);
+    if(d<=1) return {label:'Hoy/Mañana',bg:'#fef2f2',color:'#dc2626',bar:'#f87171'};
+    if(d<=3) return {label:'Urgente',   bg:'#fef2f2',color:'#dc2626',bar:'#f87171'};
+    if(d<=7) return {label:'Esta sem.', bg:'#fffbeb',color:'#d97706',bar:'#fbbf24'};
+    return           {label:'Próximo',  bg:'#f9fafb',color:'#9ca3af',bar:'#d1d5db'};
+  };
+
+  document.getElementById('ap-list-main').innerHTML = toShow.map(ap=>{
+    const s=getS(ap);
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:#f9fafb;margin-bottom:8px;">
+      <div style="width:6px;height:40px;border-radius:4px;flex-shrink:0;background:${s.bar};"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;color:#111;">${ap.proveedor} <span style="font-size:11px;color:#9ca3af;font-weight:400;">${ap.descripcion}</span></div>
+        <div style="font-size:11px;color:#9ca3af;">${ap.categoria} · Vence <strong style="color:#6b7280;">${isoToShort(ap.vencimiento)}</strong></div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:13px;font-weight:700;color:#111;margin-bottom:4px;">${fmt(ap.importe)}</div>
+        <span style="font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;background:${s.bg};color:${s.color};">${s.label}</span>
+      </div>
+    </div>`;
+  }).join('')||'<p style="font-size:13px;color:#9ca3af;text-align:center;padding:16px;">No hay pagos pendientes 🎉</p>';
+
+  document.getElementById('ap-toggle').textContent = apExpanded
+    ? 'Ver solo urgentes ‹'
+    : `Ver todos (${pending.length}) ›`;
+}
+
+function toggleAP() { apExpanded=!apExpanded; renderAP(); }
+
+// ── PENDING LIST ──────────────────────────────────────────
+function renderPendingList() {
+  const pending = state.ap.filter(ap=>ap.estado==='pendiente');
+  document.getElementById('pending-list').innerHTML = pending.length===0
+    ? '<p style="font-size:13px;color:#9ca3af;text-align:center;padding:20px;">No hay facturas pendientes 🎉</p>'
+    : pending.map((ap,i)=>`
+      <div style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #f3f4f6;border-radius:12px;margin-bottom:8px;background:#f9fafb;">
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:700;color:#111;">${ap.proveedor}</div>
+          <div style="font-size:11px;color:#9ca3af;">${ap.descripcion} · ${isoToShort(ap.vencimiento)} · <strong style="color:#374151;">${fmt(ap.importe)}</strong></div>
+        </div>
+        <button onclick="markPaid(${i})" style="padding:6px 12px;background:#10b981;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">✓ Pagado</button>
+      </div>`).join('');
+}
+
+async function markPaid(idx) {
+  const pending = state.ap.filter(ap=>ap.estado==='pendiente');
+  const ap = pending[idx]; if(!ap) return;
+  await postToSheetDB({type:'pagar',proveedor:ap.proveedor,vencimiento:ap.vencimiento});
+  const ri = state.ap.findIndex(a=>a.proveedor===ap.proveedor&&a.vencimiento===ap.vencimiento);
+  if(ri>=0) state.ap[ri].estado='pagado';
+  renderAP(); renderKPIs(); renderPendingList();
+  showToast(`✓ ${ap.proveedor} pagado`,'success');
+}
+
+// ── WRITE TO SHEETDB ──────────────────────────────────────
+async function postToSheetDB(payload) {
+  const base = CONFIG.SHEETDB_URL;
+  if (payload.type==='venta') {
+    await fetch(`${base}?sheet=Ventas`,{method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({data:[{fecha:payload.fecha,servicio:payload.servicio,
+        ventas:payload.ventas,cubiertos:payload.cubiertos,
+        propina:payload.propina||0,notas:payload.notas||''}]})});
+  } else if (payload.type==='factura') {
+    await fetch(`${base}?sheet=AP`,{method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({data:[{proveedor:payload.proveedor,descripcion:payload.descripcion||'',
+        importe:payload.importe,vencimiento:payload.vencimiento,
+        categoria:payload.categoria||'Otros',estado:'pendiente'}]})});
+  } else if (payload.type==='pagar') {
+    await fetch(`${base}/proveedor/${encodeURIComponent(payload.proveedor)}?sheet=AP`,{
+      method:'PATCH',headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({data:{estado:'pagado'}})});
+  }
+}
+
+// ── PANEL ─────────────────────────────────────────────────
+function openPanel(tab)  { document.getElementById('input-panel').classList.add('open'); document.getElementById('overlay').classList.add('show'); switchTab(tab); }
+function closePanel()    { document.getElementById('input-panel').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
+function switchTab(tab)  {
+  ['venta','factura','pagar'].forEach(t=>{
+    document.getElementById(`form-${t}`).style.display  = t===tab?'block':'none';
+    document.getElementById(`tab-${t}`).className = `panel-tab${t===tab?' active':''}`;
+  });
+}
+
+async function submitVenta() {
+  const fecha=document.getElementById('v-fecha').value;
+  const servicio=document.getElementById('v-servicio').value;
+  const ventas=parseFloat(document.getElementById('v-ventas').value);
+  const cubiertos=parseInt(document.getElementById('v-cubiertos').value);
+  const propina=parseFloat(document.getElementById('v-propina').value)||0;
+  const notas=document.getElementById('v-notas').value;
+  if(!fecha||!ventas||!cubiertos){showToast('Completá fecha, ventas y cubiertos','error');return;}
+  const btn=document.getElementById('btn-venta');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Guardando...';
+  try {
+    await postToSheetDB({type:'venta',fecha,servicio,ventas,cubiertos,propina,notas});
+    state.ventas.push({fecha,servicio,ventas,cubiertos,propina,notas});
+    renderAll();
+    document.getElementById('v-ventas').value='';
+    document.getElementById('v-cubiertos').value='';
+    document.getElementById('v-propina').value='';
+    document.getElementById('v-notas').value='';
+    showToast(`✓ Venta ${servicio} guardada`,'success');
+    closePanel();
+  } catch(e){showToast('Error al guardar','error');}
+  btn.disabled=false;btn.innerHTML='Guardar venta';
+}
+
+async function submitFactura() {
+  const proveedor=document.getElementById('f-proveedor').value.trim();
+  const descripcion=document.getElementById('f-descripcion').value.trim();
+  const importe=parseFloat(document.getElementById('f-importe').value);
+  const vencimiento=document.getElementById('f-vencimiento').value;
+  const categoria=document.getElementById('f-categoria').value;
+  if(!proveedor||!importe||!vencimiento){showToast('Completá proveedor, importe y vencimiento','error');return;}
+  const btn=document.getElementById('btn-factura');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Guardando...';
+  try {
+    await postToSheetDB({type:'factura',proveedor,descripcion,importe,vencimiento,categoria});
+    state.ap.push({proveedor,descripcion,importe,vencimiento,categoria,estado:'pendiente'});
+    state.ap.sort((a,b)=>a.vencimiento.localeCompare(b.vencimiento));
+    renderAP();renderKPIs();renderPendingList();
+    document.getElementById('f-proveedor').value='';
+    document.getElementById('f-descripcion').value='';
+    document.getElementById('f-importe').value='';
+    showToast(`✓ Factura de ${proveedor} guardada`,'success');
+    closePanel();
+  } catch(e){showToast('Error al guardar','error');}
+  btn.disabled=false;btn.innerHTML='Guardar factura';
+}
+
+// ── TOAST ─────────────────────────────────────────────────
+let toastT;
+function showToast(msg,type='success'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.className=`show ${type}`;
+  clearTimeout(toastT);toastT=setTimeout(()=>{el.className='';},3000);
+}
+
+// ── INIT ──────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('v-fecha').value=today();
+  document.getElementById('f-vencimiento').value=today();
+  loadAllData();
+  setInterval(loadAllData,10*60*1000);
+});
+</script>
+</body>
+</html>
