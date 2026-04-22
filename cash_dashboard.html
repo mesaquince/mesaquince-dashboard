@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pagos · Mesaquince</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f3f4f6;color:#111;min-height:100vh;}
+
+/* HEADER */
+.header{background:#111827;color:#fff;padding:16px 16px 20px;position:sticky;top:0;z-index:100;}
+.header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.header-title{font-size:15px;font-weight:800;letter-spacing:0.04em;color:#f9fafb;}
+.header-month{font-size:12px;color:#9ca3af;}
+.kpis{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.kpi{background:rgba(255,255,255,0.07);border-radius:10px;padding:10px;}
+.kpi-label{font-size:9px;font-weight:700;letter-spacing:0.06em;color:#6b7280;text-transform:uppercase;margin-bottom:4px;}
+.kpi-val{font-size:18px;font-weight:900;line-height:1;}
+.kpi-val.green{color:#34d399;}
+.kpi-val.amber{color:#fbbf24;}
+.kpi-val.red{color:#f87171;}
+.kpi-sub{font-size:9px;color:#6b7280;margin-top:3px;}
+
+/* PROGRESS */
+.progress-wrap{background:#fff;margin:0 12px;margin-top:12px;border-radius:12px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);}
+.progress-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.progress-label{font-size:11px;font-weight:700;color:#374151;}
+.progress-pct{font-size:12px;font-weight:800;color:#10b981;}
+.progress-bar-bg{height:8px;background:#f3f4f6;border-radius:99px;overflow:hidden;}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,#10b981,#34d399);border-radius:99px;transition:width .4s;}
+.progress-nums{display:flex;justify-content:space-between;margin-top:6px;}
+.progress-num{font-size:10px;color:#6b7280;}
+
+/* ALERT */
+.alert{margin:10px 12px;background:#fef2f2;border:1.5px solid #fecaca;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:10px;}
+.alert.hidden{display:none;}
+.alert-icon{font-size:18px;}
+.alert-text{flex:1;}
+.alert-title{font-size:12px;font-weight:800;color:#dc2626;}
+.alert-sub{font-size:11px;color:#9ca3af;margin-top:1px;}
+
+/* SEMANA CARDS */
+.semanas{padding:10px 12px;display:flex;flex-direction:column;gap:8px;}
+.sem-card{background:#fff;border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);overflow:hidden;}
+.sem-card.active{border:2px solid #f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,0.1);}
+.sem-card.late{border:2px solid #fca5a5;}
+.sem-header{display:flex;justify-content:space-between;align-items:center;padding:13px 14px;cursor:pointer;user-select:none;}
+.sem-info{display:flex;align-items:center;gap:10px;}
+.sem-badge{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;}
+.sem-badge.active{background:#fef3c7;color:#d97706;}
+.sem-badge.late{background:#fee2e2;color:#dc2626;}
+.sem-badge.done{background:#d1fae5;color:#059669;}
+.sem-badge.future{background:#f3f4f6;color:#9ca3af;}
+.sem-title{font-size:13px;font-weight:800;color:#111;}
+.sem-dates{font-size:10px;color:#9ca3af;margin-top:1px;}
+.sem-right{text-align:right;}
+.sem-total{font-size:15px;font-weight:900;}
+.sem-total.active{color:#d97706;}
+.sem-total.late{color:#dc2626;}
+.sem-total.done{color:#10b981;}
+.sem-total.future{color:#6b7280;}
+.sem-pending{font-size:10px;color:#9ca3af;margin-top:1px;}
+.sem-chevron{font-size:12px;color:#9ca3af;transition:transform .2s;margin-left:6px;}
+.sem-chevron.open{transform:rotate(180deg);}
+
+/* ITEMS */
+.sem-items{border-top:1px solid #f9fafb;}
+.item{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid #f9fafb;gap:10px;cursor:pointer;}
+.item:last-child{border-bottom:none;}
+.item:hover{background:#fafafa;}
+.item-check{width:20px;height:20px;border-radius:6px;border:2px solid #d1d5db;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;}
+.item-check.paid{background:#10b981;border-color:#10b981;color:#fff;}
+.item-check.paid::after{content:'✓';font-size:11px;font-weight:900;}
+.item-icon{font-size:14px;flex-shrink:0;}
+.item-concepto{flex:1;min-width:0;}
+.item-name{font-size:12px;font-weight:700;color:#111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.item-name.paid{text-decoration:line-through;color:#9ca3af;}
+.item-cat{font-size:9px;font-weight:700;padding:2px 6px;border-radius:99px;display:inline-block;margin-top:2px;}
+.item-importe{font-size:13px;font-weight:900;flex-shrink:0;}
+.item-importe.paid{color:#9ca3af;text-decoration:line-through;}
+
+/* CATEGORY COLORS */
+.cat-NOMINAS{background:#ede9fe;color:#7c3aed;}
+.cat-FISCAL{background:#fef3c7;color:#d97706;}
+.cat-BANCARIO{background:#dbeafe;color:#1d4ed8;}
+.cat-SEGUROS{background:#dcfce7;color:#15803d;}
+.cat-DIGITAL{background:#e0f2fe;color:#0369a1;}
+.cat-MARKETING{background:#fce7f3;color:#be185d;}
+.cat-SUMINISTROS{background:#fff7ed;color:#c2410c;}
+.cat-ALQUILER{background:#f1f5f9;color:#475569;}
+.cat-PROFESIONAL{background:#f5f3ff;color:#6d28d9;}
+.cat-PRESTAMOS{background:#fef2f2;color:#dc2626;}
+.cat-SERVICIOS{background:#f0fdf4;color:#166534;}
+
+/* ADD ITEM */
+.add-btn{display:flex;align-items:center;justify-content:center;gap:6px;margin:0 12px 16px;padding:12px;background:#fff;border:1.5px dashed #d1d5db;border-radius:12px;cursor:pointer;font-size:12px;font-weight:700;color:#6b7280;transition:all .15s;}
+.add-btn:hover{border-color:#f59e0b;color:#d97706;background:#fffbeb;}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;opacity:0;pointer-events:none;transition:opacity .2s;}
+.overlay.show{opacity:1;pointer-events:all;}
+.modal{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:20px;z-index:201;transform:translateY(100%);transition:transform .3s;}
+.modal.open{transform:translateY(0);}
+.modal-title{font-size:16px;font-weight:800;margin-bottom:16px;color:#111;}
+.fg{margin-bottom:12px;}
+.fl{display:block;font-size:11px;font-weight:700;color:#6b7280;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;}
+.fi{width:100%;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;}
+.fi:focus{border-color:#f59e0b;}
+select.fi{background:#fff;}
+.btn-row{display:flex;gap:8px;margin-top:16px;}
+.btn-p{flex:1;padding:12px;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;}
+.btn-primary{background:#f59e0b;color:#fff;}
+.btn-cancel{background:#f3f4f6;color:#374151;}
+
+/* TOAST */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:#1f2937;color:#fff;padding:10px 18px;border-radius:99px;font-size:13px;font-weight:700;opacity:0;transition:all .25s;pointer-events:none;z-index:300;white-space:nowrap;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.ok{background:#10b981;}
+#toast.err{background:#ef4444;}
+
+/* FOOTER */
+.footer{padding:16px;text-align:center;font-size:10px;color:#9ca3af;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="header-title">💳 Pagos — Estructura Fija</div>
+      <div class="header-month" id="header-month">—</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;">Caja</div>
+      <div id="h-caja" style="font-size:22px;font-weight:900;color:#34d399;">—</div>
+    </div>
+  </div>
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-label">Esta semana</div>
+      <div class="kpi-val amber" id="k-semana">—</div>
+      <div class="kpi-sub" id="k-semana-sub">pendiente</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Mes pendiente</div>
+      <div class="kpi-val red" id="k-mes">—</div>
+      <div class="kpi-sub" id="k-mes-sub">sin pagar</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Cobertura</div>
+      <div class="kpi-val" id="k-cover" style="color:#9ca3af;">—</div>
+      <div class="kpi-sub">caja / semana</div>
+    </div>
+  </div>
+</div>
+
+<div class="progress-wrap">
+  <div class="progress-row">
+    <span class="progress-label">Avance del mes</span>
+    <span class="progress-pct" id="prog-pct">0%</span>
+  </div>
+  <div class="progress-bar-bg"><div class="progress-bar-fill" id="prog-bar" style="width:0%"></div></div>
+  <div class="progress-nums">
+    <span class="progress-num">Pagado: <strong id="prog-paid">€0</strong></span>
+    <span class="progress-num">Total: <strong id="prog-total">€0</strong></span>
+  </div>
+</div>
+
+<div class="alert hidden" id="alert-late">
+  <div class="alert-icon">⚠️</div>
+  <div class="alert-text">
+    <div class="alert-title" id="alert-title">Pagos atrasados</div>
+    <div class="alert-sub" id="alert-sub">De semanas anteriores</div>
+  </div>
+</div>
+
+<div class="semanas" id="semanas-container"></div>
+
+<div class="add-btn" onclick="openAddModal()">+ Agregar pago recurrente</div>
+
+<div class="footer">Actualizado <span id="sync-time">—</span> · <a href="ops_dashboard.html" style="color:#9ca3af;">OPS</a> · <a href="finance_dashboard.html" style="color:#9ca3af;">Finance</a></div>
+
+<!-- ADD MODAL -->
+<div class="overlay" id="overlay" onclick="closeModal()"></div>
+<div class="modal" id="modal-add">
+  <div class="modal-title">Nuevo pago recurrente</div>
+  <div class="fg"><label class="fl">Concepto</label><input class="fi" type="text" id="new-concepto" placeholder="Ej: Seguro nuevo..."/></div>
+  <div class="fg"><label class="fl">Importe (€)</label><input class="fi" type="number" id="new-importe" placeholder="0.00" step="0.01" min="0"/></div>
+  <div class="fg">
+    <label class="fl">Semana de pago</label>
+    <select class="fi" id="new-semana">
+      <option value="1">Semana 1 (días 1–7)</option>
+      <option value="2">Semana 2 (días 8–14)</option>
+      <option value="3">Semana 3 (días 15–21)</option>
+      <option value="4">Semana 4 (días 22–28)</option>
+      <option value="0">Durante el mes</option>
+    </select>
+  </div>
+  <div class="fg">
+    <label class="fl">Categoría</label>
+    <select class="fi" id="new-cat">
+      <option value="NOMINAS">Nóminas</option>
+      <option value="FISCAL">Fiscal / Hacienda</option>
+      <option value="BANCARIO">Bancario</option>
+      <option value="SEGUROS">Seguros</option>
+      <option value="DIGITAL">Digital</option>
+      <option value="MARKETING">Marketing</option>
+      <option value="SUMINISTROS">Suministros</option>
+      <option value="ALQUILER">Alquiler</option>
+      <option value="PRESTAMOS">Préstamos</option>
+      <option value="SERVICIOS">Servicios</option>
+      <option value="PROFESIONAL">Profesional</option>
+    </select>
+  </div>
+  <div class="btn-row">
+    <button class="btn-p btn-cancel" onclick="closeModal()">Cancelar</button>
+    <button class="btn-p btn-primary" onclick="addItem()">Agregar</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── CONFIG ─────────────────────────────────────────────────
+const SDB = 'https://script.google.com/macros/s/AKfycbwICx_HrAvhi1KHQQ38y6THjFtO156HbYqYs97It3wxDxjLSYjEZZN5JvPoOajPy32eHg/exec';
+
+// ── GASTOS FIJOS BASE ──────────────────────────────────────
+const GASTOS_BASE = [
+  // SEMANA 1
+  {id:'nom_a',     concepto:'Nóminas A (banco)',          importe:8356.01, semana:1, cat:'NOMINAS',     icon:'👥'},
+  {id:'nom_b',     concepto:'Nóminas B (efectivo)',       importe:5686.99, semana:1, cat:'NOMINAS',     icon:'👥'},
+  {id:'autonomos', concepto:'Cuotas autónomos',           importe:610.68,  semana:1, cat:'FISCAL',      icon:'🏛️'},
+  {id:'datafono',  concepto:'Datafono Caixa',             importe:44.00,   semana:1, cat:'BANCARIO',    icon:'💳'},
+  {id:'mant_cta',  concepto:'Mantenimiento cuenta Caixa', importe:44.00,   semana:1, cat:'BANCARIO',    icon:'🏦'},
+  {id:'holded',    concepto:'Holded',                     importe:72.00,   semana:1, cat:'DIGITAL',     icon:'💻'},
+  {id:'seg_caixa', concepto:'Seguro Caixa',               importe:73.00,   semana:1, cat:'SEGUROS',     icon:'🛡️'},
+  {id:'tc_master', concepto:'TC Mastercard Caixa',        importe:200.00,  semana:1, cat:'BANCARIO',    icon:'💳'},
+  {id:'tc_visa',   concepto:'TC Visa Santander',          importe:300.00,  semana:1, cat:'BANCARIO',    icon:'💳'},
+  {id:'plan_ajunt',concepto:'Plan Ajuntament (residuos)', importe:57.00,   semana:1, cat:'FISCAL',      icon:'🏛️'},
+  {id:'plan_ss',   concepto:'Plan SS (.97225)',           importe:31.00,   semana:1, cat:'FISCAL',      icon:'🏛️'},
+  {id:'hac_iva2t', concepto:'Plan Hacienda IVA 2T 2025', importe:204.00,  semana:1, cat:'FISCAL',      icon:'🏛️'},
+  {id:'hac_iva3t', concepto:'Plan Hacienda IVA 3T 2025', importe:146.00,  semana:1, cat:'FISCAL',      icon:'🏛️'},
+  // SEMANA 2
+  {id:'marketing', concepto:'Marketing (efectivo)',       importe:600.00,  semana:2, cat:'MARKETING',   icon:'📢'},
+  {id:'mapfre',    concepto:'Seguro Mapfre',              importe:125.00,  semana:2, cat:'SEGUROS',     icon:'🛡️'},
+  {id:'axa',       concepto:'Seguro AXA',                 importe:402.00,  semana:2, cat:'SEGUROS',     icon:'🛡️'},
+  {id:'naturgy1',  concepto:'Naturgy 1 (Santander)',      importe:290.00,  semana:2, cat:'SUMINISTROS', icon:'🔥'},
+  {id:'naturgy2',  concepto:'Naturgy 2 (Santander)',      importe:82.50,   semana:2, cat:'SUMINISTROS', icon:'🔥'},
+  {id:'contable',  concepto:'Estudio Contable You',       importe:338.00,  semana:2, cat:'PROFESIONAL', icon:'📊'},
+  // SEMANA 3
+  {id:'thefork',   concepto:'The Fork',                   importe:500.00,  semana:3, cat:'DIGITAL',     icon:'🍴'},
+  {id:'alquiler',  concepto:'Alquiler Infine',            importe:2870.00, semana:3, cat:'ALQUILER',    icon:'🏠'},
+  {id:'google_ads',concepto:'Google Ads',                 importe:804.00,  semana:3, cat:'MARKETING',   icon:'📢'},
+  {id:'aeat',      concepto:'AEAT mensual',               importe:87.00,   semana:3, cat:'FISCAL',      icon:'🏛️'},
+  {id:'loomispay', concepto:'Loomispay',                  importe:82.00,   semana:3, cat:'BANCARIO',    icon:'💳'},
+  {id:'agua',      concepto:'Agua corriente',             importe:300.00,  semana:3, cat:'SUMINISTROS', icon:'💧'},
+  {id:'alarma',    concepto:'Alarma Securitas',           importe:53.00,   semana:3, cat:'SERVICIOS',   icon:'🔒'},
+  {id:'fibra',     concepto:'Fibra Orange',               importe:38.00,   semana:3, cat:'SERVICIOS',   icon:'📶'},
+  {id:'luz',       concepto:'Servicio de Luz',            importe:900.00,  semana:3, cat:'SUMINISTROS', icon:'⚡'},
+  // SEMANA 4
+  {id:'influencers',concepto:'Servicios influencers',     importe:435.00,  semana:4, cat:'MARKETING',   icon:'📱'},
+  {id:'prest_jota', concepto:'Préstamo Jota (Santander)', importe:220.00,  semana:4, cat:'PRESTAMOS',   icon:'🏦'},
+  {id:'prest_flor', concepto:'Préstamo Flor D. (Caixa)', importe:400.00,  semana:4, cat:'PRESTAMOS',   icon:'🏦'},
+  {id:'prest_pc',   concepto:'Préstamo PC (Caixa)',       importe:670.00,  semana:4, cat:'PRESTAMOS',   icon:'🏦'},
+  {id:'tgss',       concepto:'TGSS (Caixa)',              importe:747.00,  semana:4, cat:'FISCAL',      icon:'🏛️'},
+  // DURANTE EL MES
+  {id:'tpv',        concepto:'Mantenimiento TPV',         importe:12.00,   semana:0, cat:'BANCARIO',    icon:'💳'},
+  {id:'suscr_dig',  concepto:'Suscripciones digitales',   importe:48.00,   semana:0, cat:'DIGITAL',     icon:'💻'},
+  {id:'dominio',    concepto:'Dominio web',               importe:18.00,   semana:0, cat:'DIGITAL',     icon:'🌐'},
+  {id:'leasing',    concepto:'Leasing (Santander)',       importe:156.00,  semana:0, cat:'PRESTAMOS',   icon:'🏦'},
+  {id:'rentings',   concepto:'Rentings tecnológicos',     importe:139.50,  semana:0, cat:'PRESTAMOS',   icon:'🏦'},
+];
+
+// ── STATE ──────────────────────────────────────────────────
+const now    = new Date();
+const MONTH_KEY = `mq_pagos_${now.getFullYear()}_${now.getMonth()}`;
+const EXTRA_KEY = `mq_extra_${now.getFullYear()}_${now.getMonth()}`;
+
+function getPaid()  { try { return JSON.parse(localStorage.getItem(MONTH_KEY)||'[]'); } catch(e) { return []; } }
+function savePaid(arr) { localStorage.setItem(MONTH_KEY, JSON.stringify(arr)); }
+function getExtra() { try { return JSON.parse(localStorage.getItem(EXTRA_KEY)||'[]'); } catch(e) { return []; } }
+function saveExtra(arr) { localStorage.setItem(EXTRA_KEY, JSON.stringify(arr)); }
+
+function getAllGastos() { return [...GASTOS_BASE, ...getExtra()]; }
+
+function currentSemana() {
+  const d = now.getDate();
+  if (d <= 7)  return 1;
+  if (d <= 14) return 2;
+  if (d <= 21) return 3;
+  if (d <= 28) return 4;
+  return 5;
+}
+
+// ── FORMATTERS ─────────────────────────────────────────────
+const euro  = n => '€' + (n||0).toLocaleString('es-ES', {minimumFractionDigits:0, maximumFractionDigits:0});
+const euro2 = n => '€' + (n||0).toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+// ── CAJA ───────────────────────────────────────────────────
+let cajaTotal = null;
+async function loadCaja() {
+  try {
+    const r = await fetch(`${SDB}?sheet=Caja`);
+    const data = await r.json();
+    if (!Array.isArray(data) || !data.length) return;
+    const last = data[data.length - 1];
+    const num = s => parseFloat(String(s||'0').replace(',','.')) || 0;
+    cajaTotal = num(last.santander) + num(last.caixa) + num(last.bbva) + num(last.efectivo);
+    document.getElementById('h-caja').textContent = euro(cajaTotal);
+    document.getElementById('sync-time').textContent = new Date().toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit'});
+    renderKPIs();
+  } catch(e) { console.warn('Caja error:', e); }
+}
+
+// ── RENDER ─────────────────────────────────────────────────
+const SEMANA_INFO = {
+  1: { label: 'Semana 1', dates: 'Días 1–7' },
+  2: { label: 'Semana 2', dates: 'Días 8–14' },
+  3: { label: 'Semana 3', dates: 'Días 15–21' },
+  4: { label: 'Semana 4', dates: 'Días 22–28' },
+  0: { label: 'Fijos del mes', dates: 'Cargos continuos' },
+};
+
+function renderAll() {
+  const paid   = getPaid();
+  const gastos = getAllGastos();
+  const curSem = currentSemana();
+
+  // Month/header
+  const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('header-month').textContent = `${months[now.getMonth()]} ${now.getFullYear()}`;
+
+  // Progress
+  const total  = gastos.reduce((s,g)=>s+g.importe, 0);
+  const pagado = gastos.filter(g=>paid.includes(g.id)).reduce((s,g)=>s+g.importe, 0);
+  const pct    = total > 0 ? (pagado/total*100) : 0;
+  document.getElementById('prog-bar').style.width   = pct.toFixed(1)+'%';
+  document.getElementById('prog-pct').textContent   = pct.toFixed(0)+'%';
+  document.getElementById('prog-paid').textContent  = euro(pagado);
+  document.getElementById('prog-total').textContent = euro(total);
+
+  // Late alert
+  const lateItems = gastos.filter(g=>g.semana>0 && g.semana<curSem && !paid.includes(g.id));
+  const lateTotal = lateItems.reduce((s,g)=>s+g.importe,0);
+  const alertEl   = document.getElementById('alert-late');
+  if (lateItems.length > 0) {
+    alertEl.classList.remove('hidden');
+    document.getElementById('alert-title').textContent = `⚠️ ${lateItems.length} pagos atrasados — ${euro(lateTotal)}`;
+    document.getElementById('alert-sub').textContent   = `De semanas anteriores sin marcar como pagado`;
+  } else {
+    alertEl.classList.add('hidden');
+  }
+
+  // Semana cards — order: current first, then earlier (late), then future, then 0
+  const semOrder = [curSem];
+  for (let s=curSem-1; s>=1; s--) semOrder.push(s);
+  for (let s=curSem+1; s<=4; s++) semOrder.push(s);
+  semOrder.push(0);
+
+  const container = document.getElementById('semanas-container');
+  container.innerHTML = '';
+
+  semOrder.forEach(sem => {
+    const items = gastos.filter(g=>g.semana===sem);
+    if (!items.length) return;
+    const semTotal   = items.reduce((s,g)=>s+g.importe,0);
+    const semPaid    = items.filter(g=>paid.includes(g.id)).reduce((s,g)=>s+g.importe,0);
+    const semPending = semTotal - semPaid;
+    const allPaid    = semPending === 0;
+    const isActive   = sem === curSem;
+    const isLate     = sem > 0 && sem < curSem && !allPaid;
+    const isFuture   = sem > curSem || sem === 0;
+
+    const state = allPaid ? 'done' : isLate ? 'late' : isActive ? 'active' : 'future';
+    const info  = SEMANA_INFO[sem] || {label:'Semana '+sem, dates:''};
+
+    const card = document.createElement('div');
+    card.className = `sem-card ${isActive?'active':''} ${isLate?'late':''}`;
+    card.dataset.sem = sem;
+
+    const badgeEmoji = allPaid ? '✓' : isLate ? '!' : isActive ? '▶' : sem || '~';
+    const chevronId  = `chev-${sem}`;
+    const listId     = `list-${sem}`;
+    const defaultOpen= isActive || isLate;
+
+    card.innerHTML = `
+      <div class="sem-header" onclick="toggleSem(${sem})">
+        <div class="sem-info">
+          <div class="sem-badge ${state}">${badgeEmoji}</div>
+          <div>
+            <div class="sem-title">${info.label}${isActive?' <span style="font-size:9px;background:#fef3c7;color:#d97706;padding:2px 6px;border-radius:99px;vertical-align:middle;">ESTA SEMANA</span>':isLate?' <span style="font-size:9px;background:#fee2e2;color:#dc2626;padding:2px 6px;border-radius:99px;vertical-align:middle;">ATRASADO</span>':''}</div>
+            <div class="sem-dates">${info.dates}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;">
+          <div class="sem-right">
+            <div class="sem-total ${state}">${allPaid ? euro(semTotal) : euro(semPending)}</div>
+            <div class="sem-pending">${allPaid ? '✓ pagado' : `de ${euro(semTotal)}`}</div>
+          </div>
+          <div class="sem-chevron ${defaultOpen?'open':''}" id="${chevronId}">▼</div>
+        </div>
+      </div>
+      <div class="sem-items" id="${listId}" style="display:${defaultOpen?'block':'none'}">
+        ${items.map(g => renderItem(g, paid)).join('')}
+      </div>
+    `;
+    container.appendChild(card);
+  });
+
+  renderKPIs();
+}
+
+function renderItem(g, paid) {
+  const isPaid = paid.includes(g.id);
+  return `
+    <div class="item" onclick="togglePaid('${g.id}')">
+      <div class="item-check ${isPaid?'paid':''}"></div>
+      <div class="item-icon">${g.icon}</div>
+      <div class="item-concepto">
+        <div class="item-name ${isPaid?'paid':''}">${g.concepto}</div>
+        <span class="item-cat cat-${g.cat}">${g.cat}</span>
+      </div>
+      <div class="item-importe ${isPaid?'paid':''}">${euro2(g.importe)}</div>
+    </div>`;
+}
+
+function renderKPIs() {
+  const paid    = getPaid();
+  const gastos  = getAllGastos();
+  const curSem  = currentSemana();
+  const semItems = gastos.filter(g=>g.semana===curSem);
+  const semPend  = semItems.filter(g=>!paid.includes(g.id)).reduce((s,g)=>s+g.importe,0);
+  const mesPend  = gastos.filter(g=>!paid.includes(g.id)).reduce((s,g)=>s+g.importe,0);
+
+  document.getElementById('k-semana').textContent = euro(semPend);
+  document.getElementById('k-semana-sub').textContent = semPend===0 ? '✓ cubierta' : 'pendiente';
+  document.getElementById('k-mes').textContent = euro(mesPend);
+  document.getElementById('k-mes-sub').textContent = euro(gastos.reduce((s,g)=>s+g.importe,0)) + ' total';
+
+  if (cajaTotal !== null) {
+    const coverPct = semPend > 0 ? (cajaTotal/semPend*100) : 100;
+    const coverEl  = document.getElementById('k-cover');
+    coverEl.textContent = coverPct.toFixed(0)+'%';
+    coverEl.className   = 'kpi-val ' + (coverPct>=100?'green':coverPct>=50?'amber':'red');
+  }
+}
+
+// ── INTERACTIONS ───────────────────────────────────────────
+function toggleSem(sem) {
+  const list  = document.getElementById(`list-${sem}`);
+  const chev  = document.getElementById(`chev-${sem}`);
+  const open  = list.style.display !== 'none';
+  list.style.display = open ? 'none' : 'block';
+  chev.classList.toggle('open', !open);
+}
+
+function togglePaid(id) {
+  const paid = getPaid();
+  const idx  = paid.indexOf(id);
+  if (idx >= 0) paid.splice(idx, 1);
+  else paid.push(id);
+  savePaid(paid);
+  const g = getAllGastos().find(x=>x.id===id);
+  if (g) toast(idx>=0 ? `↩ ${g.concepto} desmarcado` : `✓ ${g.concepto} pagado`, idx>=0?'':'ok');
+  renderAll();
+}
+
+function openAddModal() {
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('modal-add').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('modal-add').classList.remove('open');
+}
+function addItem() {
+  const concepto = document.getElementById('new-concepto').value.trim();
+  const importe  = parseFloat(document.getElementById('new-importe').value);
+  const semana   = parseInt(document.getElementById('new-semana').value);
+  const cat      = document.getElementById('new-cat').value;
+  if (!concepto || !importe) { toast('Completá concepto e importe','err'); return; }
+  const extra = getExtra();
+  const id = 'extra_' + Date.now();
+  extra.push({id, concepto, importe, semana, cat, icon:'➕'});
+  saveExtra(extra);
+  closeModal();
+  document.getElementById('new-concepto').value='';
+  document.getElementById('new-importe').value='';
+  renderAll();
+  toast(`✓ ${concepto} agregado`,'ok');
+}
+
+// ── TOAST ──────────────────────────────────────────────────
+let tT;
+function toast(msg, type='') {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className=`show ${type}`;
+  clearTimeout(tT); tT=setTimeout(()=>el.className='',2800);
+}
+
+// ── INIT ───────────────────────────────────────────────────
+renderAll();
+loadCaja();
+setInterval(loadCaja, 5*60*1000);
+</script>
+</body>
+</html>
