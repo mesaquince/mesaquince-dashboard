@@ -462,7 +462,7 @@ function renderKPIs() {
     if (ayerCerrado && !va) { document.getElementById(el).innerHTML='<span style="color:#9ca3af;font-size:11px;">Día cerrado</span>'; return; }
     if (v==null) { document.getElementById(el).textContent='—'; return; }
     const up=v>=0;
-    document.getElementById(el).innerHTML<`<span style="color:${up?'#10b981':'#ef4444'}">${up?'↗':'↘'} ${Math.abs(v).toFixed(1)}% vs sem. ant.</span>`;
+    document.getElementById(el).innerHTML=`<span style="color:${up?'#10b981':'#ef4444'}">${up?'↗':'↘'} ${Math.abs(v).toFixed(1)}% vs sem. ant.</span>`;
   };
 
   // Si ayer fue día cerrado y sin venta → mostrar "Cerrado"
@@ -694,7 +694,7 @@ function renderWeeklyTable() {
   }
 
   const tbody = document.getElementById('weekly-tbody');
-  if (rows.length===0) { tbody.innerHTML<`<tr><td colspan="5" style="text-align:center;padding:20px;color:#9ca3af;font-size:13px;">Sin datos esta semana</td></tr>`; return; }
+  if (rows.length===0) { tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:20px;color:#9ca3af;font-size:13px;">Sin datos esta semana</td></tr>`; return; }
 
   tbody.innerHTML = rows.map(r=>{
     const isToday = r.iso===today();
@@ -781,19 +781,19 @@ async function postToSheetDB(payload) {
   const base = CONFIG.SHEETDB_URL;
   if (payload.type==='venta') {
     await fetch(`${base}?sheet=Ventas`,{method:'POST',
-      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      headers:{'Content-Type':'text/plain'},
       body:JSON.stringify({data:[{fecha:payload.fecha,servicio:payload.servicio,
         ventas:payload.ventas,cubiertos:payload.cubiertos,
         propina:payload.propina||0,notas:payload.notas||''}]})});
   } else if (payload.type==='factura') {
     await fetch(`${base}?sheet=AP`,{method:'POST',
-      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      headers:{'Content-Type':'text/plain'},
       body:JSON.stringify({data:[{proveedor:payload.proveedor,descripcion:payload.descripcion||'',
         importe:payload.importe,vencimiento:payload.vencimiento,
         categoria:payload.categoria||'Otros',estado:'pendiente'}]})});
   } else if (payload.type==='pagar') {
     await fetch(`${base}/proveedor/${encodeURIComponent(payload.proveedor)}?sheet=AP`,{
-      method:'PATCH',headers:{'Content-Type':'application/json','Accept':'application/json'},
+      method:'PATCH',headers:{'Content-Type':'text/plain'},
       body:JSON.stringify({data:{estado:'pagado'}})});
   }
 }
