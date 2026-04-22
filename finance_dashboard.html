@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Mesaquince · Finanzas</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*{font-family:'Inter',system-ui,sans-serif;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{background:#f9fafb;margin:0;overscroll-behavior:none;}
+
+/* ── PIN ── */
+#pin-screen{position:fixed;inset:0;background:#111;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;}
+.pin-dots{display:flex;gap:18px;margin:28px 0 36px;}
+.pin-dot{width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,0.15);transition:background 0.15s;}
+.pin-dot.filled{background:#f59e0b;}
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:264px;}
+.pin-btn{height:68px;border-radius:14px;border:none;background:rgba(255,255,255,0.07);color:#fff;font-size:24px;font-weight:700;cursor:pointer;}
+.pin-btn:active{background:rgba(255,255,255,0.2);}
+.pin-btn.del{background:rgba(239,68,68,0.15);color:#f87171;}
+.pin-btn.del:active{background:rgba(239,68,68,0.35);}
+.pin-shake{animation:shake 0.35s;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+
+/* ── CARDS ── */
+.card{background:#fff;border-radius:16px;padding:18px;border:1px solid #f0f0f0;box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-bottom:12px;}
+
+/* ── PANEL ── */
+#overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:50;display:none;backdrop-filter:blur(3px);}
+#overlay.show{display:block;}
+.panel{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:22px 22px 0 0;z-index:60;transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.32,0.72,0,1);max-height:88vh;display:flex;flex-direction:column;}
+.panel.open{transform:translateY(0);}
+.panel-handle{width:34px;height:4px;background:#e5e7eb;border-radius:99px;margin:12px auto 4px;}
+.panel-header{padding:8px 20px 14px;border-bottom:1px solid #f3f4f6;display:flex;justify-content:space-between;align-items:center;}
+.panel-body{flex:1;overflow-y:auto;padding:18px 20px 40px;-webkit-overflow-scrolling:touch;}
+
+/* ── INPUTS ── */
+.fi{width:100%;padding:13px 14px;border:1.5px solid #e5e7eb;border-radius:12px;font-size:15px;color:#111;background:#fafafa;outline:none;-webkit-appearance:none;}
+.fi:focus{border-color:#f59e0b;background:#fff;}
+.fl{font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;display:block;}
+.fg{margin-bottom:16px;}
+.btn-p{width:100%;padding:15px;background:#f59e0b;color:#fff;border:none;border-radius:13px;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:0.01em;}
+.btn-p:active{background:#d97706;}
+.btn-p:disabled{background:#d1d5db;cursor:not-allowed;}
+
+/* ── FAB ── */
+#fab{position:fixed;bottom:24px;right:20px;width:58px;height:58px;background:#f59e0b;border-radius:50%;border:none;cursor:pointer;box-shadow:0 4px 20px rgba(245,158,11,0.5);font-size:28px;color:#fff;z-index:40;display:flex;align-items:center;justify-content:center;font-weight:300;}
+
+/* ── PILLS ── */
+.pill{padding:7px 14px;border-radius:99px;border:1.5px solid #e5e7eb;background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:#9ca3af;white-space:nowrap;display:inline-block;}
+.pill.active{background:#111;border-color:#111;color:#fff;}
+.pill.nec.active{background:#dc2626;border-color:#dc2626;color:#fff;}
+.pill.dil.active{background:#d97706;border-color:#d97706;color:#fff;}
+.pill.evi.active{background:#6b7280;border-color:#6b7280;color:#fff;}
+.pill.pag.active{background:#10b981;border-color:#10b981;color:#fff;}
+
+/* ── BARS ── */
+.bar-bg{height:8px;background:#f3f4f6;border-radius:99px;overflow:hidden;}
+.bar-fill{height:8px;border-radius:99px;transition:width 0.7s ease;}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(16px);padding:11px 20px;border-radius:12px;font-size:13px;font-weight:700;z-index:200;opacity:0;transition:all 0.25s;pointer-events:none;color:#fff;white-space:nowrap;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.ok{background:#10b981;}
+#toast.err{background:#ef4444;}
+.spin{width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:sp 0.6s linear infinite;display:inline-block;vertical-align:middle;}
+@keyframes sp{to{transform:rotate(360deg);}}
+
+/* ── DEUDA ITEMS ── */
+.di{padding:13px 14px;border-radius:12px;background:#fafafa;border:1px solid #f0f0f0;margin-bottom:8px;transition:border-color 0.15s;}
+.di:active{border-color:#f59e0b;background:#fffbeb;}
+.di.pagado-item{opacity:0.45;}
+.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:99px;font-weight:700;}
+</style>
+</head>
+<body>
+
+<!-- ── PIN ───────────────────────────────────────────── -->
+<div id="pin-screen">
+  <div style="text-align:center;">
+    <div style="font-size:11px;color:rgba(255,255,255,0.35);font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;">Acceso privado</div>
+    <div style="font-size:26px;font-weight:900;color:#fff;letter-spacing:-0.03em;">Mesaquince <span style="color:#f59e0b;">·</span> Finanzas</div>
+  </div>
+  <div class="pin-dots" id="pin-dots">
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+    <div class="pin-dot" id="d4"></div>
+  </div>
+  <div class="pin-grid">
+    <button class="pin-btn" onclick="pi('1')">1</button>
+    <button class="pin-btn" onclick="pi('2')">2</button>
+    <button class="pin-btn" onclick="pi('3')">3</button>
+    <button class="pin-btn" onclick="pi('4')">4</button>
+    <button class="pin-btn" onclick="pi('5')">5</button>
+    <button class="pin-btn" onclick="pi('6')">6</button>
+    <button class="pin-btn" onclick="pi('7')">7</button>
+    <button class="pin-btn" onclick="pi('8')">8</button>
+    <button class="pin-btn" onclick="pi('9')">9</button>
+    <button class="pin-btn" style="background:none;"></button>
+    <button class="pin-btn" onclick="pi('0')">0</button>
+    <button class="pin-btn del" onclick="pd()">⌫</button>
+  </div>
+  <div id="pin-err" style="height:20px;margin-top:12px;font-size:13px;font-weight:600;color:#f87171;text-align:center;"></div>
+</div>
+
+<!-- ── OVERLAY ───────────────────────────────────────── -->
+<div id="overlay" onclick="closePanel()"></div>
+
+<!-- ── PANEL: PAGO ───────────────────────────────────── -->
+<div class="panel" id="panel-pago">
+  <div class="panel-handle"></div>
+  <div class="panel-header">
+    <span style="font-size:17px;font-weight:800;color:#111;">Registrar pago</span>
+    <button onclick="closePanel()" style="background:none;border:none;font-size:26px;color:#9ca3af;cursor:pointer;padding:0;line-height:1;">×</button>
+  </div>
+  <div class="panel-body">
+    <div class="fg">
+      <label class="fl">Acreedor</label>
+      <select class="fi" id="p-id" onchange="onSelDeuda()">
+        <option value="">Seleccionar acreedor...</option>
+      </select>
+    </div>
+    <div id="p-info" style="display:none;background:#fffbeb;border-radius:10px;padding:10px 13px;margin-bottom:16px;font-size:13px;color:#92400e;font-weight:600;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="fg">
+        <label class="fl">Importe (€)</label>
+        <input class="fi" type="number" id="p-imp" placeholder="0.00" step="0.01" min="0" inputmode="decimal"/>
+      </div>
+      <div class="fg">
+        <label class="fl">Fecha</label>
+        <input class="fi" type="date" id="p-fecha"/>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">Banco / Método</label>
+      <select class="fi" id="p-banco">
+        <option value="SANTANDER">Santander</option>
+        <option value="CAIXA">Caixa</option>
+        <option value="BBVA">BBVA</option>
+        <option value="EFECTIVO">Efectivo</option>
+        <option value="OTRO">Otro</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label class="fl">Nota <span style="color:#d1d5db;font-weight:400;text-transform:none;letter-spacing:0;">opcional</span></label>
+      <input class="fi" type="text" id="p-nota" placeholder="Referencia bancaria, concepto..."/>
+    </div>
+    <button class="btn-p" id="btn-pago" onclick="submitPago()">Guardar pago</button>
+  </div>
+</div>
+
+<!-- ── PANEL: CAJA ───────────────────────────────────── -->
+<div class="panel" id="panel-caja">
+  <div class="panel-handle"></div>
+  <div class="panel-header">
+    <div>
+      <span style="font-size:17px;font-weight:800;color:#111;">Actualizar caja</span>
+      <div style="font-size:12px;color:#9ca3af;margin-top:2px;">Saldo actual por cuenta</div>
+    </div>
+    <button onclick="closePanel()" style="background:none;border:none;font-size:26px;color:#9ca3af;cursor:pointer;padding:0;line-height:1;">×</button>
+  </div>
+  <div class="panel-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="fg">
+        <label class="fl">Santander (€)</label>
+        <input class="fi" type="number" id="c-sant" placeholder="0.00" step="0.01" inputmode="decimal"/>
+      </div>
+      <div class="fg">
+        <label class="fl">Caixa (€)</label>
+        <input class="fi" type="number" id="c-caixa" placeholder="0.00" step="0.01" inputmode="decimal"/>
+      </div>
+      <div class="fg">
+        <label class="fl">BBVA (€)</label>
+        <input class="fi" type="number" id="c-bbva" placeholder="0.00" step="0.01" inputmode="decimal"/>
+      </div>
+      <div class="fg">
+        <label class="fl">Efectivo (€)</label>
+        <input class="fi" type="number" id="c-ef" placeholder="0.00" step="0.01" inputmode="decimal"/>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">Nota <span style="color:#d1d5db;font-weight:400;text-transform:none;letter-spacing:0;">opcional</span></label>
+      <input class="fi" type="text" id="c-nota" placeholder="Ej: cierre semana, cobro especial..."/>
+    </div>
+    <button class="btn-p" id="btn-caja" onclick="submitCaja()">Guardar saldo</button>
+  </div>
+</div>
+
+<!-- ── FAB ───────────────────────────────────────────── -->
+<button id="fab" onclick="openPanel('pago')">＋</button>
+<div id="toast"></div>
+
+<!-- ── APP ───────────────────────────────────────────── -->
+<div id="app" style="display:none;">
+
+  <!-- HEADER -->
+  <div style="background:#fff;border-bottom:1px solid #f0f0f0;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:30;">
+    <div>
+      <div style="font-size:17px;font-weight:900;color:#111;letter-spacing:-0.02em;">Mesaquince <span style="color:#f59e0b;">·</span> Finanzas</div>
+      <div id="sync-label" style="font-size:11px;color:#9ca3af;margin-top:1px;">Cargando...</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="openPanel('caja')" style="padding:8px 12px;border:1.5px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer;font-size:12px;font-weight:700;color:#6b7280;">💰 Caja</button>
+      <button onclick="loadAll()" id="rbtn" style="padding:8px 12px;border:1.5px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer;font-size:14px;color:#6b7280;">↻</button>
+    </div>
+  </div>
+
+  <div style="max-width:600px;margin:0 auto;padding:14px 14px 100px;">
+
+    <!-- HERO 3 NÚMEROS -->
+    <div class="card" style="background:#0f0f0f;border:none;padding:20px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;text-align:center;margin-bottom:18px;">
+        <div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.4);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;">Facturado</div>
+          <div id="h-fact" style="font-size:20px;font-weight:900;color:#fff;line-height:1.1;">—</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.3);margin-top:3px;">este mes</div>
+        </div>
+        <div style="border-left:1px solid rgba(255,255,255,0.08);border-right:1px solid rgba(255,255,255,0.08);">
+          <div style="font-size:10px;color:rgba(255,255,255,0.4);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;">Deuda viva</div>
+          <div id="h-deuda" style="font-size:20px;font-weight:900;color:#f87171;line-height:1.1;">—</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.3);margin-top:3px;">pendiente</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.4);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;">En caja</div>
+          <div id="h-caja" style="font-size:20px;font-weight:900;color:#34d399;line-height:1.1;">—</div>
+          <div id="h-caja-date" style="font-size:10px;color:rgba(255,255,255,0.3);margin-top:3px;">sin datos</div>
+        </div>
+      </div>
+      <!-- BE bar -->
+      <div style="border-top:1px solid rgba(255,255,255,0.07);padding-top:14px;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:7px;">
+          <span style="color:rgba(255,255,255,0.4);">BE mensual <strong style="color:rgba(255,255,255,0.65);">€32.918</strong></span>
+          <span id="h-be-pct" style="color:#f59e0b;font-weight:800;"></span>
+        </div>
+        <div style="height:6px;background:rgba(255,255,255,0.08);border-radius:99px;overflow:hidden;">
+          <div id="h-be-bar" style="height:6px;border-radius:99px;background:#f59e0b;width:0%;transition:width 0.7s;"></div>
+        </div>
+        <div id="h-be-gap" style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:6px;"></div>
+      </div>
+    </div>
+
+    <!-- 3 BUCKETS -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div class="card" style="padding:14px;margin-bottom:0;cursor:pointer;" onclick="setFiltro('NECESARIO')">
+        <div style="font-size:9px;font-weight:800;color:#dc2626;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:7px;">🔴 Necesario</div>
+        <div id="s-nec" style="font-size:17px;font-weight:900;color:#111;line-height:1;">—</div>
+        <div id="c-nec" style="font-size:10px;color:#9ca3af;margin-top:3px;"></div>
+      </div>
+      <div class="card" style="padding:14px;margin-bottom:0;cursor:pointer;" onclick="setFiltro('DILATADO')">
+        <div style="font-size:9px;font-weight:800;color:#d97706;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:7px;">🟡 Dilatado</div>
+        <div id="s-dil" style="font-size:17px;font-weight:900;color:#111;line-height:1;">—</div>
+        <div id="c-dil" style="font-size:10px;color:#9ca3af;margin-top:3px;"></div>
+      </div>
+      <div class="card" style="padding:14px;margin-bottom:0;cursor:pointer;" onclick="setFiltro('EVITABLE')">
+        <div style="font-size:9px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:7px;">⚪ Evitable</div>
+        <div id="s-evi" style="font-size:17px;font-weight:900;color:#111;line-height:1;">—</div>
+        <div id="c-evi" style="font-size:10px;color:#9ca3af;margin-top:3px;"></div>
+      </div>
+    </div>
+
+    <!-- PROGRESO CANCELACIÓN -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-size:13px;font-weight:800;color:#111;">Progreso cancelación deuda</span>
+        <span id="prog-pct" style="font-size:14px;font-weight:900;color:#10b981;"></span>
+      </div>
+      <div class="bar-bg">
+        <div class="bar-fill" id="prog-bar" style="background:#10b981;width:0%;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#9ca3af;margin-top:7px;">
+        <span>Pagado: <strong id="prog-pag" style="color:#374151;"></strong></span>
+        <span>Deuda original: <strong id="prog-orig" style="color:#374151;"></strong></span>
+      </div>
+    </div>
+
+    <!-- LISTA PASIVOS -->
+    <div class="card" style="padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <span style="font-size:15px;font-weight:800;color:#111;">Pasivos</span>
+        <span id="dl-count" style="font-size:12px;color:#9ca3af;font-weight:600;"></span>
+      </div>
+      <!-- filtros -->
+      <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:14px;scrollbar-width:none;-webkit-overflow-scrolling:touch;">
+        <button class="pill active" id="pill-TODOS"    onclick="setFiltro('TODOS')">Todos</button>
+        <button class="pill nec"   id="pill-NECESARIO" onclick="setFiltro('NECESARIO')">🔴 Necesario</button>
+        <button class="pill dil"   id="pill-DILATADO"  onclick="setFiltro('DILATADO')">🟡 Dilatado</button>
+        <button class="pill evi"   id="pill-EVITABLE"  onclick="setFiltro('EVITABLE')">⚪ Evitable</button>
+        <button class="pill pag"   id="pill-PAGADO"    onclick="setFiltro('PAGADO')">✓ Pagados</button>
+      </div>
+      <div id="dl"></div>
+    </div>
+
+    <!-- ÚLTIMOS PAGOS -->
+    <div class="card">
+      <div style="font-size:15px;font-weight:800;color:#111;margin-bottom:14px;">Últimos pagos registrados</div>
+      <div id="pl"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────
+const CFG = {
+  PIN:    '3010',
+  SDB:    'https://script.google.com/macros/s/AKfycbwICx_HrAvhi1KHQQ38y6THjFtO156HbYqYs97It3wxDxjLSYjEZZN5JvPoOajPy32eHg/exec',
+  BE:     32917.70,
+};
+
+// ── STATE ──────────────────────────────────────────────────
+let S = { deuda:[], pagos:[], caja:[], ventas:[] };
+let filtro = 'TODOS';
+let pinVal = '';
+
+// ── HELPERS ───────────────────────────────────────────────
+const euro  = n => '€' + Math.round(n).toLocaleString('es-ES');
+const euroK = n => n >= 10000 ? '€'+(n/1000).toFixed(0)+'k' : n >= 1000 ? '€'+(n/1000).toFixed(1)+'k' : euro(n);
+const today = () => new Date().toISOString().split('T')[0];
+const num   = v => parseFloat(v) || 0;
+
+// ── PIN ───────────────────────────────────────────────────
+function pi(d) {
+  if (pinVal.length >= 4) return;
+  pinVal += d;
+  updDots();
+  if (pinVal.length === 4) {
+    setTimeout(() => {
+      if (pinVal === CFG.PIN) {
+        document.getElementById('pin-screen').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        init();
+      } else {
+        document.getElementById('pin-dots').classList.add('pin-shake');
+        setTimeout(() => document.getElementById('pin-dots').classList.remove('pin-shake'), 400);
+        document.getElementById('pin-err').textContent = 'PIN incorrecto';
+        pinVal = '';
+        updDots();
+        setTimeout(() => document.getElementById('pin-err').textContent = '', 2500);
+      }
+    }, 180);
+  }
+}
+function pd() { pinVal = pinVal.slice(0,-1); updDots(); document.getElementById('pin-err').textContent=''; }
+function updDots() {
+  for (let i=1;i<=4;i++)
+    document.getElementById('d'+i).className = 'pin-dot' + (pinVal.length>=i?' filled':'');
+}
+
+// ── DATA ──────────────────────────────────────────────────
+async function fetchTab(tab) {
+  try {
+    const r = await fetch(`${CFG.SDB}?sheet=${encodeURIComponent(tab)}`);
+    if (!r.ok) return [];
+    const json = await r.json();
+    if (!json || json.error || !Array.isArray(json)) return [];
+    return json;
+  } catch(e) {
+    return [];
+  }
+}
+async function loadAll() {
+  document.getElementById('rbtn').innerHTML = '<span class="spin"></span>';
+  try {
+    const [d,p,c,v] = await Promise.all([
+      fetchTab('Deuda'), fetchTab('Pagos'), fetchTab('Caja'), fetchTab('Ventas')
+    ]);
+    // Normalizar claves a minúsculas (el Sheet tiene 'ID' en vez de 'id')
+    S.deuda  = d.map(r => { const n={}; Object.keys(r).forEach(k=>n[k.toLowerCase().trim()]=r[k]); return n; });
+    // Filtrar pagos inválidos (deuda_id='undefined' de errores anteriores)
+    S.pagos  = p.filter(r => r.deuda_id && r.deuda_id !== 'undefined');
+    S.caja   = c;
+    S.ventas = v;
+    render();
+    const n = new Date();
+    if (S.deuda.length === 0 && S.pagos.length === 0) {
+      document.getElementById('sync-label').textContent =
+        '⚠ Sin datos · Ejecutá el script de setup en Google Sheets';
+    } else {
+      document.getElementById('sync-label').textContent =
+        `Sync ${n.getHours()}:${String(n.getMinutes()).padStart(2,'0')} · ${n.toLocaleDateString('es-ES',{day:'numeric',month:'short'})}`;
+    }
+  } catch(e) {
+    toast('Error de conexión','err');
+    console.error(e);
+  }
+  document.getElementById('rbtn').innerHTML = '↻';
+}
+
+// ── COMPUTED ──────────────────────────────────────────────
+function enrich() {
+  return S.deuda.map(d => {
+    const extra   = S.pagos.filter(p=>p.deuda_id===d.id).reduce((s,p)=>s+num(p.importe),0);
+    const base    = num(d.pagado);
+    const pagado  = base + extra;
+    const orig    = num(d.importe_original);
+    const pend    = Math.max(0, orig - pagado);
+    const estado  = pend<=0 ? 'PAGADO' : pagado>0 ? 'PARCIAL' : 'PENDIENTE';
+    return { ...d, orig, pagado, pend, estado };
+  });
+}
+const deudaViva    = () => enrich().reduce((s,d)=>s+d.pend,0);
+const deudaOrig    = () => enrich().reduce((s,d)=>s+d.orig,0);
+const totalPagado  = () => enrich().reduce((s,d)=>s+d.pagado,0);
+function enCaja() {
+  if (!S.caja.length) return null;
+  const l = S.caja[S.caja.length-1];
+  return num(l.santander)+num(l.caixa)+num(l.bbva)+num(l.efectivo);
+}
+function facturadoMes() {
+  const m = new Date();
+  const pfx = `${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}`;
+  return S.ventas.filter(v=>String(v.fecha).startsWith(pfx)).reduce((s,v)=>s+num(v.ventas),0);
+}
+
+// ── RENDER ────────────────────────────────────────────────
+function render() {
+  renderHero();
+  renderBuckets();
+  renderProgress();
+  renderList();
+  renderPagos();
+  fillSelect();
+}
+
+function renderHero() {
+  const fact = facturadoMes(), dv = deudaViva(), caja = enCaja();
+  const pct  = Math.min(100, fact/CFG.BE*100);
+  const gap  = CFG.BE - fact;
+  document.getElementById('h-fact').textContent  = euroK(fact);
+  document.getElementById('h-deuda').textContent = euroK(dv);
+  document.getElementById('h-caja').textContent  = caja!=null ? euroK(caja) : '—';
+  if (S.caja.length) {
+    const l = S.caja[S.caja.length-1];
+    document.getElementById('h-caja-date').textContent = l.fecha || '—';
+  }
+  document.getElementById('h-be-bar').style.width = pct.toFixed(1)+'%';
+  document.getElementById('h-be-pct').textContent = pct.toFixed(0)+'%';
+  document.getElementById('h-be-gap').textContent = gap>0
+    ? `Faltan ${euro(gap)} para el BE este mes`
+    : '✓ Break even alcanzado';
+  document.getElementById('h-be-gap').style.color = gap>0 ? 'rgba(255,255,255,0.35)' : '#34d399';
+}
+
+function renderBuckets() {
+  const d = enrich();
+  [['NECESARIO','nec'],['DILATADO','dil'],['EVITABLE','evi']].forEach(([u,k]) => {
+    const items = d.filter(x=>x.urgencia===u && x.estado!=='PAGADO');
+    document.getElementById('s-'+k).textContent = euroK(items.reduce((s,x)=>s+x.pend,0));
+    document.getElementById('c-'+k).textContent = `${items.length} pendiente${items.length!==1?'s':''}`;
+  });
+}
+
+function renderProgress() {
+  const orig = deudaOrig(), pag = totalPagado();
+  const pct  = orig>0 ? pag/orig*100 : 0;
+  document.getElementById('prog-bar').style.width = pct.toFixed(1)+'%';
+  document.getElementById('prog-pct').textContent = pct.toFixed(1)+'%';
+  document.getElementById('prog-pag').textContent  = euro(pag);
+  document.getElementById('prog-orig').textContent = euro(orig);
+}
+
+const UCFG = {
+  NECESARIO: { color:'#dc2626', bg:'#fef2f2', txt:'Necesario' },
+  DILATADO:  { color:'#d97706', bg:'#fffbeb', txt:'Dilatado'  },
+  EVITABLE:  { color:'#6b7280', bg:'#f3f4f6', txt:'Evitable'  },
+};
+const CEMOJI = { PROVEEDORES:'🛒',NOMINAS:'👥',BANCARIO:'🏦',COSTOS_FIJOS:'🏢',FISCAL:'🏛',PERSONAL:'🔧',OTROS:'📋' };
+
+function renderList() {
+  let items = enrich();
+  items = filtro==='PAGADO'
+    ? items.filter(x=>x.estado==='PAGADO')
+    : filtro==='TODOS'
+      ? items.filter(x=>x.estado!=='PAGADO')
+      : items.filter(x=>x.urgencia===filtro && x.estado!=='PAGADO');
+  items.sort((a,b) => b.pend - a.pend);
+  document.getElementById('dl-count').textContent = `${items.length} items`;
+
+  if (!items.length) {
+    document.getElementById('dl').innerHTML =
+      `<p style="text-align:center;color:#9ca3af;font-size:13px;padding:20px 0;">
+        ${filtro==='PAGADO'?'Sin pagos registrados aún':'¡Todo al día en esta categoría! 🎉'}
+      </p>`;
+    return;
+  }
+
+  document.getElementById('dl').innerHTML = items.map(item => {
+    const u   = UCFG[item.urgencia] || UCFG.NECESARIO;
+    const em  = CEMOJI[item.categoria] || '📋';
+    const pct = item.orig>0 ? (item.pagado/item.orig*100) : 0;
+    return `<div class="di ${item.estado==='PAGADO'?'pagado-item':''}" onclick="openPagoItem('${item.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:#111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            ${em} ${item.concepto}
+          </div>
+          <div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;align-items:center;">
+            <span class="badge" style="background:${u.bg};color:${u.color};">${u.txt}</span>
+            <span style="font-size:10px;color:#9ca3af;">${item.categoria}</span>
+            ${item.en_plan==='SI'?'<span style="font-size:10px;color:#7c3aed;font-weight:700;">📋 Plan</span>':''}
+            ${item.estado==='PARCIAL'?`<span style="font-size:10px;color:#f59e0b;font-weight:700;">${pct.toFixed(0)}% pag.</span>`:''}
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:15px;font-weight:900;color:${item.estado==='PAGADO'?'#10b981':'#111'};">
+            ${item.estado==='PAGADO' ? '✓' : euro(item.pend)}
+          </div>
+          ${item.estado!=='PAGADO' && item.pagado>0
+            ? `<div style="font-size:10px;color:#9ca3af;">de ${euro(item.orig)}</div>` : ''}
+          ${item.estado!=='PAGADO'
+            ? `<button onclick="event.stopPropagation();openPagoItem('${item.id}')"
+                style="margin-top:5px;padding:5px 11px;background:#f59e0b;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer;">
+                Pagar
+              </button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderPagos() {
+  const rec = [...S.pagos]
+    .sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)))
+    .slice(0,12);
+  if (!rec.length) {
+    document.getElementById('pl').innerHTML =
+      '<p style="text-align:center;color:#d1d5db;font-size:13px;padding:10px 0;">Sin pagos registrados aún</p>';
+    return;
+  }
+  document.getElementById('pl').innerHTML = rec.map(p=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f9fafb;">
+      <div style="min-width:0;flex:1;padding-right:10px;">
+        <div style="font-size:13px;font-weight:700;color:#111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.concepto && p.concepto!=='undefined' ? p.concepto : (S.deuda.find(d=>d.id===p.deuda_id)||{}).concepto || p.deuda_id || '—'}</div>
+        <div style="font-size:11px;color:#9ca3af;">${String(p.fecha).substring(0,10)} · ${p.banco||'—'}${p.nota?' · '+p.nota:''}</div>
+      </div>
+      <div style="font-size:14px;font-weight:900;color:#10b981;white-space:nowrap;">${euro(num(p.importe))}</div>
+    </div>`).join('');
+}
+
+// ── FILTRO ────────────────────────────────────────────────
+function setFiltro(f) {
+  filtro = f;
+  ['TODOS','NECESARIO','DILATADO','EVITABLE','PAGADO'].forEach(x => {
+    const el = document.getElementById('pill-'+x);
+    if (!el) return;
+    const map = { NECESARIO:'nec', DILATADO:'dil', EVITABLE:'evi', PAGADO:'pag' };
+    const cls = map[x] ? ' '+map[x] : '';
+    el.className = 'pill' + cls + (x===f?' active':'');
+  });
+  renderList();
+}
+
+// ── PANEL ─────────────────────────────────────────────────
+function openPanel(type) {
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('panel-'+type).classList.add('open');
+}
+function closePanel() {
+  document.getElementById('overlay').classList.remove('show');
+  ['pago','caja'].forEach(t => document.getElementById('panel-'+t).classList.remove('open'));
+}
+function openPagoItem(id) {
+  document.getElementById('p-id').value = id;
+  onSelDeuda();
+  openPanel('pago');
+}
+
+// ── SELECT DEUDA ──────────────────────────────────────────
+function fillSelect() {
+  const pending = enrich()
+    .filter(x=>x.estado!=='PAGADO')
+    .sort((a,b)=>{
+      const o={NECESARIO:0,DILATADO:1,EVITABLE:2};
+      return (o[a.urgencia]||0)-(o[b.urgencia]||0) || b.pend-a.pend;
+    });
+  const sel = document.getElementById('p-id');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Seleccionar acreedor...</option>' +
+    pending.map(x=>`<option value="${x.id}">${x.concepto} — ${euro(x.pend)}</option>`).join('');
+  if (cur) sel.value = cur;
+}
+function onSelDeuda() {
+  const id = document.getElementById('p-id').value;
+  const el = document.getElementById('p-info');
+  if (!id) { el.style.display='none'; return; }
+  const d = enrich().find(x=>x.id===id);
+  if (!d) { el.style.display='none'; return; }
+  el.textContent = `Pendiente: ${euro(d.pend)} (deuda original: ${euro(d.orig)})`;
+  el.style.display = 'block';
+  document.getElementById('p-imp').value = d.pend.toFixed(2);
+}
+
+// ── SUBMIT PAGO ───────────────────────────────────────────
+async function submitPago() {
+  const id    = document.getElementById('p-id').value;
+  const imp   = num(document.getElementById('p-imp').value);
+  const banco = document.getElementById('p-banco').value;
+  const fecha = document.getElementById('p-fecha').value;
+  const nota  = document.getElementById('p-nota').value;
+  if (!id||!imp||!fecha) { toast('Completá acreedor, importe y fecha','err'); return; }
+  const d = enrich().find(x=>x.id===id);
+  const concepto = d ? d.concepto : id;
+  const btn = document.getElementById('btn-pago');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> Guardando...';
+  try {
+    await fetch(`${CFG.SDB}?sheet=Pagos`, {
+      method:'POST', headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify({data:[{fecha,deuda_id:id,concepto,importe:imp,banco,nota}]})
+    });
+    S.pagos.push({fecha,deuda_id:id,concepto,importe:String(imp),banco,nota});
+    render();
+    document.getElementById('p-imp').value='';
+    document.getElementById('p-nota').value='';
+    closePanel();
+    toast(`✓ ${euro(imp)} pagado a ${concepto.split(' ')[0]}`,'ok');
+  } catch(e) { toast('Error al guardar','err'); }
+  btn.disabled=false; btn.innerHTML='Guardar pago';
+}
+
+// ── SUBMIT CAJA ───────────────────────────────────────────
+async function submitCaja() {
+  const sant = num(document.getElementById('c-sant').value);
+  const caixa= num(document.getElementById('c-caixa').value);
+  const bbva = num(document.getElementById('c-bbva').value);
+  const ef   = num(document.getElementById('c-ef').value);
+  const nota = document.getElementById('c-nota').value;
+  const total = sant+caixa+bbva+ef;
+  const btn = document.getElementById('btn-caja');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> Guardando...';
+  try {
+    await fetch(`${CFG.SDB}?sheet=Caja`, {
+      method:'POST', headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify({data:[{fecha:today(),santander:sant,caixa,bbva,efectivo:ef,nota}]})
+    });
+    S.caja.push({fecha:today(),santander:String(sant),caixa:String(caixa),bbva:String(bbva),efectivo:String(ef),nota});
+    render();
+    closePanel();
+    toast(`✓ Caja actualizada — ${euro(total)} total`,'ok');
+  } catch(e) { toast('Error al guardar','err'); }
+  btn.disabled=false; btn.innerHTML='Guardar saldo';
+}
+
+// ── TOAST ──────────────────────────────────────────────────
+let tT;
+function toast(msg,type='ok') {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className=`show ${type}`;
+  clearTimeout(tT); tT=setTimeout(()=>el.className='',3000);
+}
+
+// ── INIT ───────────────────────────────────────────────────
+function init() {
+  document.getElementById('p-fecha').value = today();
+  loadAll();
+  setInterval(loadAll, 5*60*1000);
+}
+window.addEventListener('DOMContentLoaded', updDots);
+</script>
+</body>
+</html>
