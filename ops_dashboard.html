@@ -333,12 +333,13 @@ let apExpanded = false;
 // ── HELPERS ───────────────────────────────────────────────
 const fmt  = n  => n != null ? '€'+n.toLocaleString('es-ES',{minimumFractionDigits:0,maximumFractionDigits:0}) : '—';
 const fmtD = n  => n != null ? n.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
-const today   = () => new Date().toISOString().split('T')[0];
-const addDays = (iso, d) => new Date(new Date(iso).getTime() + d*86400000).toISOString().split('T')[0];
-const monday  = (ref = today()) => { const d=new Date(ref); const day=d.getDay()||7; d.setDate(d.getDate()-day+1); return d.toISOString().split('T')[0]; };
+const toLocalISO = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const today   = () => toLocalISO(new Date());
+const addDays = (iso, d) => { const dt=new Date(iso+'T12:00:00'); dt.setDate(dt.getDate()+d); return toLocalISO(dt); };
+const monday  = (ref = today()) => { const d=new Date(ref+'T12:00:00'); const day=d.getDay()||7; d.setDate(d.getDate()-day+1); return toLocalISO(d); };
 const dayNames = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-const isoToShort = iso => { const [,m,d]=iso.split('-'); const months=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']; return `${parseInt(d)} ${months[parseInt(m)-1]}`; };
-const isoToDayName = iso => dayNames[new Date(iso).getDay()];
+const isoToShort = iso => { const [,m,d]=iso.split('-'); const months=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']; return `${dayNames[new Date(iso+'T12:00:00').getDay()]} ${parseInt(d)} ${months[parseInt(m)-1]}`; };
+const isoToDayName = iso => dayNames[new Date(iso+'T12:00:00').getDay()];
 
 function ventasSuma(ventas, fechaInicio, fechaFin) {
   return ventas.filter(v=>v.fecha>=fechaInicio&&v.fecha<=fechaFin).reduce((s,v)=>({ventas:s.ventas+v.ventas,cubiertos:s.cubiertos+v.cubiertos}),{ventas:0,cubiertos:0});
@@ -368,7 +369,7 @@ async function fetchSheetData(tab) {
 function parseVentas(rows) {
   if (!Array.isArray(rows)) return [];
   return rows.map(r=>({
-    fecha:     String(r.fecha||'').trim().substring(0,10),
+    fecha:     (s => s.includes('T') ? toLocalISO(new Date(s)) : s.trim().substring(0,10))(String(r.fecha||'')),
     servicio:  String(r.servicio||'').trim(),
     ventas:    parseFloat(r.ventas)||0,
     cubiertos: parseInt(r.cubiertos)||0,
