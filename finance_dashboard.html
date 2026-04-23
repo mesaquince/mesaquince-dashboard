@@ -44,7 +44,7 @@ body{background:#f9fafb;margin:0;overscroll-behavior:none;}
 .btn-p:disabled{background:#d1d5db;cursor:not-allowed;}
 
 /* ── FAB ── */
-#fab{position:fixed;bottom:24px;right:20px;width:58px;height:58px;background:#f59e0b;border-radius:50%;border:none;cursor:pointer;box-shadow:0 4px 20px rgba(245,158,11,0.5);font-size:28px;color:#fff;z-index:40;display:flex;align-items:center;justify-content:center;font-weight:300;}
+#fab{position:fixed;bottom:24px;right:20px;width:58px;height:58px;background:#f59e0b;border-radius:50%;border:none;cursor:pointer;box-shadow:0 4px 20px rgba(245,158,11,0.5);font-size:28px;color:#fff;z-index:41;display:flex;align-items:center;justify-content:center;font-weight:300;transition:transform 0.2s;}
 
 /* ── PILLS ── */
 .pill{padding:7px 14px;border-radius:99px;border:1.5px solid #e5e7eb;background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:#9ca3af;white-space:nowrap;display:inline-block;}
@@ -71,6 +71,13 @@ body{background:#f9fafb;margin:0;overscroll-behavior:none;}
 .di:active{border-color:#f59e0b;background:#fffbeb;}
 .di.pagado-item{opacity:0.45;}
 .badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:99px;font-weight:700;}
+
+/* ── FAB MENU ── */
+#fab-menu{position:fixed;bottom:94px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:40;pointer-events:none;opacity:0;transform:translateY(12px);transition:opacity 0.2s,transform 0.2s;}
+#fab-menu.show{pointer-events:auto;opacity:1;transform:translateY(0);}
+.fab-opt{display:flex;align-items:center;gap:10px;background:#fff;border:none;border-radius:14px;padding:12px 16px;font-size:14px;font-weight:700;color:#111;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.12);white-space:nowrap;justify-content:flex-end;}
+.fab-opt:active{background:#f9fafb;}
+.fab-opt .ficon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -105,7 +112,7 @@ body{background:#f9fafb;margin:0;overscroll-behavior:none;}
 </div>
 
 <!-- ── OVERLAY ───────────────────────────────────────── -->
-<div id="overlay" onclick="closePanel()"></div>
+<div id="overlay" onclick="closeFabMenu();closePanel()"></div>
 
 <!-- ── PANEL: PAGO ───────────────────────────────────── -->
 <div class="panel" id="panel-pago">
@@ -187,8 +194,98 @@ body{background:#f9fafb;margin:0;overscroll-behavior:none;}
   </div>
 </div>
 
+<!-- ── PANEL: CARGO ───────────────────────────────────── -->
+<div class="panel" id="panel-cargo">
+  <div class="panel-handle"></div>
+  <div class="panel-header">
+    <div>
+      <span style="font-size:17px;font-weight:800;color:#111;">Agregar cargo</span>
+      <div style="font-size:12px;color:#9ca3af;margin-top:2px;">Suma importe extra a una deuda existente</div>
+    </div>
+    <button onclick="closePanel()" style="background:none;border:none;font-size:26px;color:#9ca3af;cursor:pointer;padding:0;line-height:1;">×</button>
+  </div>
+  <div class="panel-body">
+    <div class="fg">
+      <label class="fl">Deuda base</label>
+      <select class="fi" id="cargo-id" onchange="onSelCargo()">
+        <option value="">Seleccionar deuda...</option>
+      </select>
+    </div>
+    <div id="cargo-info" style="display:none;background:#fffbeb;border-radius:10px;padding:10px 13px;margin-bottom:16px;font-size:13px;color:#92400e;font-weight:600;"></div>
+    <div class="fg">
+      <label class="fl">Importe adicional (€)</label>
+      <input class="fi" type="number" id="cargo-imp" placeholder="0.00" step="0.01" min="0.01" inputmode="decimal"/>
+    </div>
+    <div class="fg">
+      <label class="fl">Nota <span style="color:#d1d5db;font-weight:400;text-transform:none;letter-spacing:0;">obligatoria — ¿por qué se agrega?</span></label>
+      <input class="fi" type="text" id="cargo-nota" placeholder="Ej: comisión adicional abril, ajuste factura..."/>
+    </div>
+    <button class="btn-p" id="btn-cargo" onclick="submitCargo()">Agregar cargo</button>
+  </div>
+</div>
+
+<!-- ── PANEL: NUEVA DEUDA ─────────────────────────────── -->
+<div class="panel" id="panel-nueva-deuda">
+  <div class="panel-handle"></div>
+  <div class="panel-header">
+    <span style="font-size:17px;font-weight:800;color:#111;">Nueva deuda</span>
+    <button onclick="closePanel()" style="background:none;border:none;font-size:26px;color:#9ca3af;cursor:pointer;padding:0;line-height:1;">×</button>
+  </div>
+  <div class="panel-body">
+    <div class="fg">
+      <label class="fl">Concepto / Acreedor</label>
+      <input class="fi" type="text" id="nd-concepto" placeholder="Ej: Proveedor pescado, Renting cafetera..."/>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="fg">
+        <label class="fl">Importe (€)</label>
+        <input class="fi" type="number" id="nd-imp" placeholder="0.00" step="0.01" min="0.01" inputmode="decimal"/>
+      </div>
+      <div class="fg">
+        <label class="fl">Urgencia</label>
+        <select class="fi" id="nd-urgencia">
+          <option value="NECESARIO">🔴 Necesario</option>
+          <option value="DILATADO" selected>🟡 Dilatado</option>
+          <option value="EVITABLE">⚪ Evitable</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">Categoría</label>
+      <select class="fi" id="nd-categoria">
+        <option value="PROVEEDORES">🛒 Proveedores</option>
+        <option value="NOMINAS">👥 Nóminas / Personal</option>
+        <option value="BANCARIO">🏦 Bancario</option>
+        <option value="COSTOS_FIJOS">🏢 Costos fijos</option>
+        <option value="FISCAL">🏛 Fiscal</option>
+        <option value="PERSONAL">🔧 Personal / Servicios</option>
+        <option value="OTROS">📋 Otros</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label class="fl">Nota <span style="color:#d1d5db;font-weight:400;text-transform:none;letter-spacing:0;">opcional</span></label>
+      <input class="fi" type="text" id="nd-nota" placeholder="Detalles, vencimiento, acuerdo de pago..."/>
+    </div>
+    <button class="btn-p" id="btn-nueva-deuda" onclick="submitNuevaDeuda()">Guardar nueva deuda</button>
+  </div>
+</div>
+
 <!-- ── FAB ───────────────────────────────────────────── -->
-<button id="fab" onclick="openPanel('pago')">＋</button>
+<div id="fab-menu">
+  <button class="fab-opt" onclick="closeFabMenu();openPanel('nueva-deuda')">
+    Nueva deuda
+    <span class="ficon" style="background:#fee2e2;color:#dc2626;">📋</span>
+  </button>
+  <button class="fab-opt" onclick="closeFabMenu();openPanel('cargo')">
+    Agregar cargo a deuda
+    <span class="ficon" style="background:#fef3c7;color:#d97706;">＋</span>
+  </button>
+  <button class="fab-opt" onclick="closeFabMenu();openPanel('pago')">
+    Registrar pago
+    <span class="ficon" style="background:#d1fae5;color:#10b981;">💳</span>
+  </button>
+</div>
+<button id="fab" onclick="toggleFabMenu()">＋</button>
 <div id="toast"></div>
 
 <!-- ── APP ───────────────────────────────────────────── -->
@@ -509,10 +606,17 @@ function renderList() {
           ${item.estado!=='PAGADO' && item.pagado>0
             ? `<div style="font-size:10px;color:#9ca3af;">de ${euro(item.orig)}</div>` : ''}
           ${item.estado!=='PAGADO'
-            ? `<button onclick="event.stopPropagation();openPagoItem('${item.id}')"
-                style="margin-top:5px;padding:5px 11px;background:#f59e0b;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer;">
-                Pagar
-              </button>` : ''}
+            ? `<div style="display:flex;gap:5px;margin-top:5px;">
+                <button onclick="event.stopPropagation();openPagoItem('${item.id}')"
+                  style="padding:5px 11px;background:#f59e0b;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer;">
+                  Pagar
+                </button>
+                <button onclick="event.stopPropagation();openCargoItem('${item.id}')"
+                  title="Agregar cargo extra"
+                  style="padding:5px 9px;background:#f3f4f6;color:#6b7280;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;">
+                  ＋
+                </button>
+               </div>` : ''}
         </div>
       </div>
     </div>`;
@@ -553,17 +657,32 @@ function setFiltro(f) {
 
 // ── PANEL ─────────────────────────────────────────────────
 function openPanel(type) {
+  closeFabMenu();
   document.getElementById('overlay').classList.add('show');
   document.getElementById('panel-'+type).classList.add('open');
 }
 function closePanel() {
   document.getElementById('overlay').classList.remove('show');
-  ['pago','caja'].forEach(t => document.getElementById('panel-'+t).classList.remove('open'));
+  ['pago','caja','cargo','nueva-deuda'].forEach(t => document.getElementById('panel-'+t).classList.remove('open'));
+}
+function toggleFabMenu() {
+  const m = document.getElementById('fab-menu');
+  const open = m.classList.toggle('show');
+  document.getElementById('fab').style.transform = open ? 'rotate(45deg)' : '';
+}
+function closeFabMenu() {
+  document.getElementById('fab-menu').classList.remove('show');
+  document.getElementById('fab').style.transform = '';
 }
 function openPagoItem(id) {
   document.getElementById('p-id').value = id;
   onSelDeuda();
   openPanel('pago');
+}
+function openCargoItem(id) {
+  document.getElementById('cargo-id').value = id;
+  onSelCargo();
+  openPanel('cargo');
 }
 
 // ── SELECT DEUDA ──────────────────────────────────────────
@@ -574,11 +693,27 @@ function fillSelect() {
       const o={NECESARIO:0,DILATADO:1,EVITABLE:2};
       return (o[a.urgencia]||0)-(o[b.urgencia]||0) || b.pend-a.pend;
     });
+  // Select de pago
   const sel = document.getElementById('p-id');
   const cur = sel.value;
   sel.innerHTML = '<option value="">Seleccionar acreedor...</option>' +
     pending.map(x=>`<option value="${x.id}">${x.concepto} — ${euro(x.pend)}</option>`).join('');
   if (cur) sel.value = cur;
+  // Select de cargo
+  const sc = document.getElementById('cargo-id');
+  const cc = sc.value;
+  sc.innerHTML = '<option value="">Seleccionar deuda...</option>' +
+    pending.map(x=>`<option value="${x.id}">${x.concepto} — ${euro(x.orig)} orig.</option>`).join('');
+  if (cc) sc.value = cc;
+}
+function onSelCargo() {
+  const id = document.getElementById('cargo-id').value;
+  const el = document.getElementById('cargo-info');
+  if (!id) { el.style.display='none'; return; }
+  const d = enrich().find(x=>x.id===id);
+  if (!d) { el.style.display='none'; return; }
+  el.textContent = `Original: ${euro(d.orig)} · Pagado: ${euro(d.pagado)} · Pendiente: ${euro(d.pend)}`;
+  el.style.display='block';
 }
 function onSelDeuda() {
   const id = document.getElementById('p-id').value;
@@ -639,6 +774,88 @@ async function submitCaja() {
     toast(`✓ Caja actualizada — ${euro(total)} total`,'ok');
   } catch(e) { toast('Error al guardar','err'); }
   btn.disabled=false; btn.innerHTML='Guardar saldo';
+}
+
+// ── SUBMIT CARGO ──────────────────────────────────────────
+async function submitCargo() {
+  const id   = document.getElementById('cargo-id').value;
+  const imp  = parseFloat(document.getElementById('cargo-imp').value) || 0;
+  const nota = document.getElementById('cargo-nota').value.trim();
+  if (!id) { toast('Seleccioná la deuda base','err'); return; }
+  if (imp <= 0) { toast('Ingresá un importe mayor a 0','err'); return; }
+  if (!nota) { toast('Agregá una nota explicando el cargo','err'); return; }
+  const base = enrich().find(x=>x.id===id);
+  const concepto = (base ? base.concepto : id) + ' — adicional';
+  const newId = 'ADD-' + Date.now().toString().slice(-6);
+  const row = {
+    id: newId,
+    categoria: base ? base.categoria : 'OTROS',
+    concepto,
+    urgencia: base ? base.urgencia : 'NECESARIO',
+    importe_original: imp,
+    pagado: 0,
+    estado: 'PENDIENTE',
+    en_plan: 'NO',
+    cuota_plan: '',
+    nota
+  };
+  const btn = document.getElementById('btn-cargo');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> Guardando...';
+  try {
+    await fetch(`${CFG.SDB}?sheet=Deuda`, {
+      method:'POST', headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify({data:[row]})
+    });
+    S.deuda.push({ ...row, importe_original: String(imp), pagado: '0' });
+    render();
+    document.getElementById('cargo-imp').value='';
+    document.getElementById('cargo-nota').value='';
+    document.getElementById('cargo-id').value='';
+    document.getElementById('cargo-info').style.display='none';
+    closePanel();
+    toast(`✓ Cargo ${euro(imp)} agregado a ${base?base.concepto.split(' ')[0]:'deuda'}`,'ok');
+  } catch(e) { toast('Error al guardar','err'); }
+  btn.disabled=false; btn.innerHTML='Agregar cargo';
+}
+
+// ── SUBMIT NUEVA DEUDA ─────────────────────────────────────
+async function submitNuevaDeuda() {
+  const concepto  = document.getElementById('nd-concepto').value.trim();
+  const imp       = parseFloat(document.getElementById('nd-imp').value) || 0;
+  const urgencia  = document.getElementById('nd-urgencia').value;
+  const categoria = document.getElementById('nd-categoria').value;
+  const nota      = document.getElementById('nd-nota').value.trim();
+  if (!concepto) { toast('Agregá un concepto/acreedor','err'); return; }
+  if (imp <= 0)  { toast('Ingresá un importe mayor a 0','err'); return; }
+  const newId = categoria.substring(0,3).toUpperCase() + '-' + Date.now().toString().slice(-5);
+  const row = {
+    id: newId,
+    categoria,
+    concepto,
+    urgencia,
+    importe_original: imp,
+    pagado: 0,
+    estado: 'PENDIENTE',
+    en_plan: 'NO',
+    cuota_plan: '',
+    nota
+  };
+  const btn = document.getElementById('btn-nueva-deuda');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> Guardando...';
+  try {
+    await fetch(`${CFG.SDB}?sheet=Deuda`, {
+      method:'POST', headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify({data:[row]})
+    });
+    S.deuda.push({ ...row, importe_original: String(imp), pagado: '0' });
+    render();
+    document.getElementById('nd-concepto').value='';
+    document.getElementById('nd-imp').value='';
+    document.getElementById('nd-nota').value='';
+    closePanel();
+    toast(`✓ Deuda "${concepto}" agregada — ${euro(imp)}`,'ok');
+  } catch(e) { toast('Error al guardar','err'); }
+  btn.disabled=false; btn.innerHTML='Guardar nueva deuda';
 }
 
 // ── TOAST ──────────────────────────────────────────────────
