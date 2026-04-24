@@ -403,16 +403,17 @@ function parseVentas(rows) {
   // ventasRaw: solo filas con fecha válida (para el Historial)
   state.ventasRaw = all.filter(r => r.fecha);
 
-  // Recopilar void_idx de TODAS las filas (incluyendo las VOID sin fecha)
-  // y guardarlo en state para que renderHistorial también lo use
-  const voidedIdx = new Set(
-    all.filter(r => !isNaN(r.void_idx)).map(r => r.void_idx)
-  );
+  // Recopilar índices anulados desde el campo notas (formato "VOID:N")
+  // — usamos notas porque es una columna que ya existe en el sheet Ventas
+  const voidedIdx = new Set();
+  all.forEach(r => {
+    const m = String(r.notas||'').match(/^VOID:(\d+)/);
+    if (m) voidedIdx.add(parseInt(m[1]));
+  });
   state.voidedIdx = voidedIdx;
 
   return all.filter(r => {
-    if (!r.fecha) return false;                   // requiere fecha
-    if (r.tipo === 'VOID') return false;          // marcadores VOID no cuentan
+    if (!r.fecha) return false;
     if (voidedIdx.has(r._idx)) return false;      // fila anulada por idx exacto
     return r.ventas > 0;
   });
@@ -991,14 +992,18 @@ async function anularVenta(idx, fechaDisplay) {
   if (!confirm(`¿Anular la venta de ${fechaDisplay}? No se puede deshacer.`)) return;
   showToast('Anulando...','success');
   try {
-    const res = await fetch(`${CONFIG.SHEETDB_URL}?sheet=Ventas`, {
+    // Guardamos el marcador de anulación en el campo "notas" (columna que ya existe en el sheet)
+    // formato: "VOID:N" donde N es el _idx de la fila a anular
+    await fetch(`${CONFIG.SHEETDB_URL}?sheet=Ventas`, {
       method:'POST', headers:{'Content-Type':'text/plain'},
-      body: JSON.stringify({data:[{fecha:'',servicio:'',ventas:0,cubiertos:0,propina:0,notas:'anulada',tipo:'VOID',void_idx:idx}]})
+      body: JSON.stringify({data:[{
+        fecha: today(), servicio:'anulacion', ventas:0,
+        cubiertos:0, propina:0, notas:`VOID:${idx}`
+      }]})
     });
-    // Pequeña espera para que el sheet procese antes de recargar
     await new Promise(r => setTimeout(r, 1200));
     await loadAllData();
-    showToast(`✓ Venta #${idx} anulada`,'success');
+    showToast(`✓ Entrada anulada`,'success');
   } catch(e) {
     console.error('anularVenta error:', e);
     showToast('Error al anular','error');
