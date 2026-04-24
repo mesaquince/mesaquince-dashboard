@@ -489,8 +489,16 @@ function enrich() {
   // Identificar filas "hijo" que tienen #BASE:<parentId> en su nota
   const baseOf = d => { const m = String(d.nota||'').match(/#BASE:([^\s|]+)/); return m ? m[1] : null; };
 
+  // IDs ocultos via #HIDDEN:<id>
+  const hiddenIds = new Set(
+    S.deuda.flatMap(d => {
+      const m = String(d.nota||'').match(/#HIDDEN:([^\s|]+)/);
+      return m ? [m[1]] : [];
+    })
+  );
+
   return S.deuda
-    .filter(d => !baseOf(d))          // solo padres en la lista principal
+    .filter(d => !baseOf(d) && !hiddenIds.has(d.id))   // solo padres no ocultos
     .map(d => {
       // Pagos directos sobre este id
       const extraPagos = S.pagos.filter(p=>p.deuda_id===d.id).reduce((s,p)=>s+num(p.importe),0);
@@ -632,6 +640,11 @@ function renderList() {
                   title="Agregar cargo extra"
                   style="padding:5px 9px;background:#f3f4f6;color:#6b7280;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;">
                   ＋
+                </button>
+                <button onclick="event.stopPropagation();ocultarDeuda('${item.id}','${item.concepto.replace(/'/g,"\\'")}')"
+                  title="Eliminar / ocultar"
+                  style="padding:5px 9px;background:#fef2f2;color:#ef4444;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;">
+                  🗑
                 </button>
                </div>` : ''}
         </div>
@@ -791,6 +804,27 @@ async function submitCaja() {
     toast(`✓ Caja actualizada — ${euro(total)} total`,'ok');
   } catch(e) { toast('Error al guardar','err'); }
   btn.disabled=false; btn.innerHTML='Guardar saldo';
+}
+
+// ── OCULTAR DEUDA ─────────────────────────────────────────
+async function ocultarDeuda(id, concepto) {
+  if (!confirm(`¿Eliminar "${concepto}" de la lista? No afecta pagos ya registrados.`)) return;
+  const newId = 'HIDE-' + Date.now().toString().slice(-6);
+  try {
+    await fetch(`${CFG.SDB}?sheet=Deuda`, {
+      method:'POST', headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify({data:[{
+        id: newId, categoria:'OTROS', concepto:'_ocultar_',
+        urgencia:'EVITABLE', importe_original:0, pagado:0,
+        estado:'PAGADO', en_plan:'NO', cuota_plan:'',
+        nota:`#HIDDEN:${id}`
+      }]})
+    });
+    S.deuda.push({ id:newId, nota:`#HIDDEN:${id}`, concepto:'_ocultar_',
+      urgencia:'EVITABLE', importe_original:'0', pagado:'0', estado:'PAGADO' });
+    render();
+    toast(`✓ "${concepto.split(' ').slice(0,2).join(' ')}" eliminada`,'ok');
+  } catch(e) { toast('Error al eliminar','err'); }
 }
 
 // ── SUBMIT CARGO ──────────────────────────────────────────
