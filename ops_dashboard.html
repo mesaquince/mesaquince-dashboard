@@ -84,15 +84,20 @@
       <button onclick="closePanel()" style="background:none;border:none;font-size:22px;color:#9ca3af;cursor:pointer;">×</button>
     </div>
     <div style="display:flex;gap:4px;">
-      <button class="panel-tab active" id="tab-venta"   onclick="switchTab('venta')">💰 Venta</button>
-      <button class="panel-tab"        id="tab-factura" onclick="switchTab('factura')">📄 Factura</button>
-      <button class="panel-tab"        id="tab-pagar"   onclick="switchTab('pagar')">✅ Pagado</button>
+      <button class="panel-tab active" id="tab-venta"    onclick="switchTab('venta')">💰 Venta</button>
+      <button class="panel-tab"        id="tab-factura"  onclick="switchTab('factura')">📄 Factura</button>
+      <button class="panel-tab"        id="tab-pagar"    onclick="switchTab('pagar')">✅ Pagado</button>
+      <button class="panel-tab"        id="tab-historial" onclick="switchTab('historial')">📋 Historial</button>
     </div>
   </div>
   <div style="flex:1;overflow-y:auto;padding:20px;">
 
     <!-- VENTA -->
     <div id="form-venta">
+      <!-- modo edición: ocultos, se rellenan con openForEdit() -->
+      <input type="hidden" id="v-edit-orig-fecha"/>
+      <input type="hidden" id="v-edit-orig-servicio"/>
+      <div id="v-edit-banner" style="display:none;background:#fef3c7;border-radius:10px;padding:9px 12px;margin-bottom:12px;font-size:12px;color:#92400e;font-weight:600;"></div>
       <div class="fg"><label class="fl">Fecha</label><input class="fi" type="date" id="v-fecha"/></div>
       <div class="fg"><label class="fl">Servicio</label>
         <select class="fi" id="v-servicio">
@@ -136,6 +141,12 @@
     <div id="form-pagar" style="display:none;">
       <p style="font-size:12px;color:#9ca3af;margin:0 0 16px;">Marcá como pagada una factura pendiente.</p>
       <div id="pending-list"><p style="font-size:13px;color:#9ca3af;text-align:center;padding:20px;">Cargando...</p></div>
+    </div>
+
+    <!-- HISTORIAL -->
+    <div id="form-historial" style="display:none;">
+      <p style="font-size:12px;color:#9ca3af;margin:0 0 14px;">Últimas ventas registradas. Tocá <strong style="color:#111;">✏ Corregir</strong> para editar fecha, importe o cubiertos.</p>
+      <div id="historial-list"><p style="font-size:13px;color:#9ca3af;text-align:center;padding:20px;">Cargando...</p></div>
     </div>
   </div>
 </div>
@@ -325,7 +336,7 @@ const CONFIG = {
 const BE_SEMANAL = CONFIG.BE_MENSUAL / 4; // 4 semanas operativas/mes → beDiario = BE_SEMANAL/5 ≈ €1.650
 
 // ── STATE ─────────────────────────────────────────────────
-let state = { ventas:[], ap:[], cubReservados:{} };
+let state = { ventas:[], ventasRaw:[], ap:[], cubReservados:{} };
 let salesChart = null;
 let chartMode  = 'wow';
 let apExpanded = false;
@@ -366,16 +377,49 @@ async function fetchSheetData(tab) {
   if (!res.ok) throw new Error(`SheetDB ${res.status}`);
   return res.json();
 }
+function parseFecha(s) {
+  s = String(s||'').trim();
+  if (!s) return '';
+  // ISO timestamp from Apps Script (e.g. "2026-04-22T22:00:00.000Z")
+  // Strategy: para timestamps nocturnos (T22:00 = medianoche España UTC+2),
+  // usamos toLocalISO para obtener la fecha local correcta.
+  if (s.includes('T')) return toLocalISO(new Date(s));
+  return s.substring(0,10);
+}
+
 function parseVentas(rows) {
   if (!Array.isArray(rows)) return [];
-  return rows.map(r=>({
-    fecha:     (s => s.includes('T') ? toLocalISO(new Date(s)) : s.trim().substring(0,10))(String(r.fecha||'')),
-    servicio:  String(r.servicio||'').trim(),
-    ventas:    parseFloat(r.ventas)||0,
-    cubiertos: parseInt(r.cubiertos)||0,
-    propina:   parseFloat(r.propina)||0,
-    notas:     String(r.notas||'').trim(),
-  })).filter(r=>r.fecha&&r.ventas>0);
+
+  // Paso 1: parsear todas las filas con campos extra de corrección
+  const all = rows.map((r,i)=>({
+    _idx:          i,
+    fecha:         parseFecha(r.fecha),
+    servicio:      String(r.servicio||'cena').trim().toLowerCase(),
+    ventas:        parseFloat(r.ventas)||0,
+    cubiertos:     parseInt(r.cubiertos)||0,
+    propina:       parseFloat(r.propina)||0,
+    notas:         String(r.notas||'').trim(),
+    tipo:          String(r.tipo||'').trim().toUpperCase(),       // '' | 'CORRECCION' | 'VOID'
+    orig_fecha:    String(r.orig_fecha||'').trim(),
+    orig_servicio: String(r.orig_servicio||'').trim().toLowerCase(),
+  })).filter(r=>r.fecha);
+
+  // Guardar copia raw (para Historial)
+  state.ventasRaw = [...all];
+
+  // Paso 2: identificar claves orig. que tienen corrección
+  const overridden = new Set();
+  all.filter(r=>r.tipo==='CORRECCION').forEach(c=>{
+    if (c.orig_fecha && c.orig_servicio)
+      overridden.add(`${c.orig_fecha}|${c.orig_servicio}`);
+  });
+
+  // Paso 3: filtrar — excluir VOID, excluir originales anulados por corrección
+  return all.filter(r => {
+    if (r.tipo === 'VOID') return false;
+    if (r.tipo !== 'CORRECCION' && overridden.has(`${r.fecha}|${r.servicio}`)) return false;
+    return r.ventas > 0;
+  });
 }
 function parseAP(rows) {
   if (!Array.isArray(rows)) return [];
@@ -393,7 +437,7 @@ async function loadAllData() {
   document.getElementById('refresh-btn').innerHTML = '<span class="spinner"></span>';
   try {
     const [vRaw, apRaw] = await Promise.all([fetchSheetData('Ventas'), fetchSheetData('AP')]);
-    state.ventas = parseVentas(vRaw);
+    state.ventas = parseVentas(vRaw);  // también popula state.ventasRaw
     state.ap     = parseAP(apRaw);
     renderAll();
     const now = new Date();
@@ -415,6 +459,8 @@ function renderAll() {
   renderWeeklyTable();
   renderAP();
   renderPendingList();
+  // Actualizar historial si el tab está abierto
+  if (document.getElementById('tab-historial').classList.contains('active')) renderHistorial();
 }
 
 // ── BE HERO ───────────────────────────────────────────────
@@ -785,7 +831,8 @@ async function postToSheetDB(payload) {
       headers:{'Content-Type':'text/plain'},
       body:JSON.stringify({data:[{fecha:payload.fecha,servicio:payload.servicio,
         ventas:payload.ventas,cubiertos:payload.cubiertos,
-        propina:payload.propina||0,notas:payload.notas||''}]})});
+        propina:payload.propina||0,notas:payload.notas||'',
+        tipo:payload.tipo||'',orig_fecha:payload.orig_fecha||'',orig_servicio:payload.orig_servicio||''}]})});
   } else if (payload.type==='factura') {
     await fetch(`${base}?sheet=AP`,{method:'POST',
       headers:{'Content-Type':'text/plain'},
@@ -803,34 +850,47 @@ async function postToSheetDB(payload) {
 function openPanel(tab)  { document.getElementById('input-panel').classList.add('open'); document.getElementById('overlay').classList.add('show'); switchTab(tab); }
 function closePanel()    { document.getElementById('input-panel').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
 function switchTab(tab)  {
-  ['venta','factura','pagar'].forEach(t=>{
+  ['venta','factura','pagar','historial'].forEach(t=>{
     document.getElementById(`form-${t}`).style.display  = t===tab?'block':'none';
     document.getElementById(`tab-${t}`).className = `panel-tab${t===tab?' active':''}`;
   });
+  if (tab==='historial') renderHistorial();
+  if (tab==='venta') clearEditMode();
 }
 
 async function submitVenta() {
-  const fecha=document.getElementById('v-fecha').value;
-  const servicio=document.getElementById('v-servicio').value;
-  const ventas=parseFloat(document.getElementById('v-ventas').value);
-  const cubiertos=parseInt(document.getElementById('v-cubiertos').value);
-  const propina=parseFloat(document.getElementById('v-propina').value)||0;
-  const notas=document.getElementById('v-notas').value;
+  const fecha     = document.getElementById('v-fecha').value;
+  const servicio  = document.getElementById('v-servicio').value;
+  const ventas    = parseFloat(document.getElementById('v-ventas').value);
+  const cubiertos = parseInt(document.getElementById('v-cubiertos').value);
+  const propina   = parseFloat(document.getElementById('v-propina').value)||0;
+  const notas     = document.getElementById('v-notas').value;
+  const origFecha    = document.getElementById('v-edit-orig-fecha').value;
+  const origServicio = document.getElementById('v-edit-orig-servicio').value;
+  const isEdit    = !!(origFecha && origServicio);
+
   if(!fecha||!ventas||!cubiertos){showToast('Completá fecha, ventas y cubiertos','error');return;}
   const btn=document.getElementById('btn-venta');
-  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Guardando...';
+  btn.disabled=true;
+  btn.innerHTML=`<span class="spinner"></span> ${isEdit?'Corrigiendo...':'Guardando...'}`;
   try {
-    await postToSheetDB({type:'venta',fecha,servicio,ventas,cubiertos,propina,notas});
-    state.ventas.push({fecha,servicio,ventas,cubiertos,propina,notas});
-    renderAll();
+    const payload = {
+      type:'venta', fecha, servicio, ventas, cubiertos, propina, notas,
+      ...(isEdit ? { tipo:'CORRECCION', orig_fecha:origFecha, orig_servicio:origServicio } : {tipo:'', orig_fecha:'', orig_servicio:''})
+    };
+    await postToSheetDB(payload);
+    // Recargar datos del sheet para que la corrección se aplique correctamente
+    await loadAllData();
     document.getElementById('v-ventas').value='';
     document.getElementById('v-cubiertos').value='';
     document.getElementById('v-propina').value='';
     document.getElementById('v-notas').value='';
-    showToast(`✓ Venta ${servicio} guardada`,'success');
+    clearEditMode();
+    showToast(isEdit ? `✓ Corrección guardada para ${fecha}` : `✓ Venta ${servicio} guardada`, 'success');
     closePanel();
   } catch(e){showToast('Error al guardar','error');}
-  btn.disabled=false;btn.innerHTML='Guardar venta';
+  btn.disabled=false;
+  btn.innerHTML='Guardar venta';
 }
 
 async function submitFactura() {
@@ -854,6 +914,75 @@ async function submitFactura() {
     closePanel();
   } catch(e){showToast('Error al guardar','error');}
   btn.disabled=false;btn.innerHTML='Guardar factura';
+}
+
+// ── HISTORIAL ─────────────────────────────────────────────
+function renderHistorial() {
+  // Mostrar ventasRaw (todas las filas) ordenadas por fecha desc, últimas 30
+  const list = document.getElementById('historial-list');
+  if (!state.ventasRaw || !state.ventasRaw.length) {
+    list.innerHTML = '<p style="font-size:13px;color:#9ca3af;text-align:center;padding:20px;">Sin datos. Actualizá primero.</p>';
+    return;
+  }
+  const rows = [...state.ventasRaw]
+    .sort((a,b) => b.fecha.localeCompare(a.fecha) || b._idx - a._idx)
+    .slice(0, 30);
+
+  const svcLabel = s => ({almuerzo:'☀ Almuerzo', cena:'🌙 Cena', tardeo:'🍹 Tardeo'}[s] || s);
+  const tipoTag  = t => {
+    if (t==='CORRECCION') return '<span style="font-size:10px;padding:1px 6px;background:#fef3c7;color:#d97706;border-radius:99px;font-weight:700;margin-left:4px;">Corrección</span>';
+    if (t==='VOID')       return '<span style="font-size:10px;padding:1px 6px;background:#fef2f2;color:#ef4444;border-radius:99px;font-weight:700;margin-left:4px;">Anulada</span>';
+    return '';
+  };
+
+  list.innerHTML = rows.map(r => {
+    const isVoid = r.tipo === 'VOID';
+    const isCorr = r.tipo === 'CORRECCION';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f9fafb;${isVoid?'opacity:0.4;':'' }">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:700;color:#111;display:flex;align-items:center;flex-wrap:wrap;">
+          ${isoToShort(r.fecha)} · ${svcLabel(r.servicio)}
+          ${tipoTag(r.tipo)}
+          ${isCorr && r.orig_fecha ? `<span style="font-size:10px;color:#9ca3af;margin-left:4px;">(orig: ${r.orig_fecha})</span>` : ''}
+        </div>
+        <div style="font-size:11px;color:#9ca3af;">${r.cubiertos} cub.${r.notas?' · '+r.notas:''}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:13px;font-weight:800;color:${isVoid?'#ef4444':isCorr?'#d97706':'#111'};">${fmt(r.ventas)}</div>
+        ${!isVoid ? `<button onclick="openForEdit('${r.fecha}','${r.servicio}',${r.ventas},${r.cubiertos},${r.propina},'${r.notas.replace(/'/g,"\\'")}','${r.tipo}')"
+          style="font-size:11px;padding:3px 9px;background:#f3f4f6;color:#374151;border:none;border-radius:7px;cursor:pointer;font-weight:600;margin-top:3px;">
+          ✏ Corregir
+        </button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openForEdit(fecha, servicio, ventas, cubiertos, propina, notas, tipo) {
+  // Pre-llenar el form de venta con los datos existentes
+  document.getElementById('v-fecha').value    = fecha;
+  document.getElementById('v-servicio').value = servicio;
+  document.getElementById('v-ventas').value   = ventas;
+  document.getElementById('v-cubiertos').value = cubiertos;
+  document.getElementById('v-propina').value  = propina || '';
+  document.getElementById('v-notas').value    = notas || '';
+  // Guardar referencia original
+  document.getElementById('v-edit-orig-fecha').value    = fecha;
+  document.getElementById('v-edit-orig-servicio').value = servicio;
+  // Mostrar banner
+  const banner = document.getElementById('v-edit-banner');
+  banner.style.display = 'block';
+  banner.innerHTML = `✏ Corrigiendo: <strong>${isoToShort(fecha)} · ${servicio}</strong> — Cambiá lo que necesités y guardá.`;
+  document.getElementById('btn-venta').textContent = 'Guardar corrección';
+  // Ir al tab venta
+  switchTab('venta');
+}
+
+function clearEditMode() {
+  document.getElementById('v-edit-orig-fecha').value    = '';
+  document.getElementById('v-edit-orig-servicio').value = '';
+  document.getElementById('v-edit-banner').style.display = 'none';
+  document.getElementById('btn-venta').textContent = 'Guardar venta';
 }
 
 // ── TOAST ─────────────────────────────────────────────────
