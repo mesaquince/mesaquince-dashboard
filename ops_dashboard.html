@@ -380,9 +380,6 @@ async function fetchSheetData(tab) {
 function parseFecha(s) {
   s = String(s||'').trim();
   if (!s) return '';
-  // ISO timestamp from Apps Script (e.g. "2026-04-22T22:00:00.000Z")
-  // Strategy: para timestamps nocturnos (T22:00 = medianoche España UTC+2),
-  // usamos toLocalISO para obtener la fecha local correcta.
   if (s.includes('T')) return toLocalISO(new Date(s));
   return s.substring(0,10);
 }
@@ -390,34 +387,29 @@ function parseFecha(s) {
 function parseVentas(rows) {
   if (!Array.isArray(rows)) return [];
 
-  // Paso 1: parsear todas las filas con campos extra de corrección
   const all = rows.map((r,i)=>({
-    _idx:          i,
-    fecha:         parseFecha(r.fecha),
-    servicio:      String(r.servicio||'cena').trim().toLowerCase(),
-    ventas:        parseFloat(r.ventas)||0,
-    cubiertos:     parseInt(r.cubiertos)||0,
-    propina:       parseFloat(r.propina)||0,
-    notas:         String(r.notas||'').trim(),
-    tipo:          String(r.tipo||'').trim().toUpperCase(),       // '' | 'CORRECCION' | 'VOID'
-    orig_fecha:    String(r.orig_fecha||'').trim(),
-    orig_servicio: String(r.orig_servicio||'').trim().toLowerCase(),
+    _idx:      i,
+    fecha:     parseFecha(r.fecha),
+    servicio:  String(r.servicio||'cena').trim().toLowerCase(),
+    ventas:    parseFloat(r.ventas)||0,
+    cubiertos: parseInt(r.cubiertos)||0,
+    propina:   parseFloat(r.propina)||0,
+    notas:     String(r.notas||'').trim(),
+    tipo:      String(r.tipo||'').trim().toUpperCase(),
+    // void_idx: índice exacto de la fila que esta fila anula (más preciso que orig_fecha)
+    void_idx:  (r.void_idx !== undefined && r.void_idx !== '') ? parseInt(r.void_idx) : NaN,
   })).filter(r=>r.fecha);
 
-  // Guardar copia raw (para Historial)
   state.ventasRaw = [...all];
 
-  // Paso 2: identificar claves orig. que tienen corrección
-  const overridden = new Set();
-  all.filter(r=>r.tipo==='CORRECCION').forEach(c=>{
-    if (c.orig_fecha && c.orig_servicio)
-      overridden.add(`${c.orig_fecha}|${c.orig_servicio}`);
-  });
+  // Recopilar índices exactos anulados (por void_idx)
+  const voidedIdx = new Set(
+    all.filter(r => !isNaN(r.void_idx)).map(r => r.void_idx)
+  );
 
-  // Paso 3: filtrar — excluir VOID, excluir originales anulados por corrección
   return all.filter(r => {
-    if (r.tipo === 'VOID') return false;
-    if (r.tipo !== 'CORRECCION' && overridden.has(`${r.fecha}|${r.servicio}`)) return false;
+    if (r.tipo === 'VOID') return false;          // marcadores VOID no cuentan
+    if (voidedIdx.has(r._idx)) return false;      // fila anulada por idx exacto
     return r.ventas > 0;
   });
 }
@@ -832,7 +824,8 @@ async function postToSheetDB(payload) {
       body:JSON.stringify({data:[{fecha:payload.fecha,servicio:payload.servicio,
         ventas:payload.ventas,cubiertos:payload.cubiertos,
         propina:payload.propina||0,notas:payload.notas||'',
-        tipo:payload.tipo||'',orig_fecha:payload.orig_fecha||'',orig_servicio:payload.orig_servicio||''}]})});
+        tipo:payload.tipo||'',
+        void_idx: payload.void_idx !== undefined && !isNaN(payload.void_idx) ? payload.void_idx : ''}]})});
   } else if (payload.type==='factura') {
     await fetch(`${base}?sheet=AP`,{method:'POST',
       headers:{'Content-Type':'text/plain'},
@@ -865,9 +858,8 @@ async function submitVenta() {
   const cubiertos = parseInt(document.getElementById('v-cubiertos').value);
   const propina   = parseFloat(document.getElementById('v-propina').value)||0;
   const notas     = document.getElementById('v-notas').value;
-  const origFecha    = document.getElementById('v-edit-orig-fecha').value;
-  const origServicio = document.getElementById('v-edit-orig-servicio').value;
-  const isEdit    = !!(origFecha && origServicio);
+  const origIdx   = parseInt(document.getElementById('v-edit-orig-fecha').value);  // reutilizamos el campo para guardar _idx
+  const isEdit    = !isNaN(origIdx);
 
   if(!fecha||!ventas||!cubiertos){showToast('Completá fecha, ventas y cubiertos','error');return;}
   const btn=document.getElementById('btn-venta');
@@ -876,7 +868,8 @@ async function submitVenta() {
   try {
     const payload = {
       type:'venta', fecha, servicio, ventas, cubiertos, propina, notas,
-      ...(isEdit ? { tipo:'CORRECCION', orig_fecha:origFecha, orig_servicio:origServicio } : {tipo:'', orig_fecha:'', orig_servicio:''})
+      tipo: isEdit ? 'CORRECCION' : '',
+      void_idx: isEdit ? origIdx : NaN,
     };
     await postToSheetDB(payload);
     // Recargar datos del sheet para que la corrección se aplique correctamente
@@ -935,47 +928,73 @@ function renderHistorial() {
     return '';
   };
 
+  // Marcar filas anuladas por void_idx para mostrarlas como tachadas
+  const voidedInView = new Set(
+    rows.filter(r => !isNaN(r.void_idx)).map(r => r.void_idx)
+  );
+
   list.innerHTML = rows.map(r => {
-    const isVoid = r.tipo === 'VOID';
-    const isCorr = r.tipo === 'CORRECCION';
-    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f9fafb;${isVoid?'opacity:0.4;':'' }">
+    const isVoidMarker = r.tipo === 'VOID';
+    const isAnulada    = voidedInView.has(r._idx);
+    const isCorr       = r.tipo === 'CORRECCION';
+    const dim          = isVoidMarker || isAnulada;
+    const notas_safe   = (r.notas||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const fechaLabel   = r.fecha ? isoToShort(r.fecha) : '—';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #f9fafb;${dim?'opacity:0.35;text-decoration:line-through;':'' }">
       <div style="flex:1;min-width:0;">
-        <div style="font-size:12px;font-weight:700;color:#111;display:flex;align-items:center;flex-wrap:wrap;">
-          ${isoToShort(r.fecha)} · ${svcLabel(r.servicio)}
+        <div style="font-size:12px;font-weight:700;color:#111;display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
+          ${r.fecha ? fechaLabel : '—'} · ${svcLabel(r.servicio)}
           ${tipoTag(r.tipo)}
-          ${isCorr && r.orig_fecha ? `<span style="font-size:10px;color:#9ca3af;margin-left:4px;">(orig: ${r.orig_fecha})</span>` : ''}
+          ${isAnulada ? '<span style="font-size:10px;padding:1px 6px;background:#fef2f2;color:#ef4444;border-radius:99px;font-weight:700;">Anulada</span>' : ''}
+          <span style="font-size:10px;color:#d1d5db;font-weight:400;">#${r._idx}</span>
         </div>
-        <div style="font-size:11px;color:#9ca3af;">${r.cubiertos} cub.${r.notas?' · '+r.notas:''}</div>
+        <div style="font-size:11px;color:#9ca3af;">${r.cubiertos} cub.${r.notas&&r.notas!=='anulada'?' · '+r.notas:''}</div>
       </div>
       <div style="text-align:right;flex-shrink:0;">
-        <div style="font-size:13px;font-weight:800;color:${isVoid?'#ef4444':isCorr?'#d97706':'#111'};">${fmt(r.ventas)}</div>
-        ${!isVoid ? `<button onclick="openForEdit('${r.fecha}','${r.servicio}',${r.ventas},${r.cubiertos},${r.propina},'${r.notas.replace(/'/g,"\\'")}','${r.tipo}')"
-          style="font-size:11px;padding:3px 9px;background:#f3f4f6;color:#374151;border:none;border-radius:7px;cursor:pointer;font-weight:600;margin-top:3px;">
-          ✏ Corregir
-        </button>` : ''}
+        <div style="font-size:13px;font-weight:800;color:${isCorr?'#d97706':'#111'};">${r.ventas>0?fmt(r.ventas):'—'}</div>
+        ${!dim && r.ventas > 0 ? `
+        <div style="display:flex;gap:4px;margin-top:3px;justify-content:flex-end;">
+          <button onclick="openForEdit(${r._idx},'${r.fecha}','${r.servicio}',${r.ventas},${r.cubiertos},${r.propina||0},'${notas_safe}')"
+            style="font-size:11px;padding:3px 8px;background:#f3f4f6;color:#374151;border:none;border-radius:7px;cursor:pointer;font-weight:600;">
+            ✏
+          </button>
+          <button onclick="anularVenta(${r._idx},'${fechaLabel}')"
+            style="font-size:11px;padding:3px 8px;background:#fef2f2;color:#ef4444;border:none;border-radius:7px;cursor:pointer;font-weight:600;">
+            🗑
+          </button>
+        </div>` : ''}
       </div>
     </div>`;
   }).join('');
 }
 
-function openForEdit(fecha, servicio, ventas, cubiertos, propina, notas, tipo) {
-  // Pre-llenar el form de venta con los datos existentes
-  document.getElementById('v-fecha').value    = fecha;
-  document.getElementById('v-servicio').value = servicio;
-  document.getElementById('v-ventas').value   = ventas;
+function openForEdit(idx, fecha, servicio, ventas, cubiertos, propina, notas) {
+  document.getElementById('v-fecha').value     = fecha;
+  document.getElementById('v-servicio').value  = servicio;
+  document.getElementById('v-ventas').value    = ventas;
   document.getElementById('v-cubiertos').value = cubiertos;
-  document.getElementById('v-propina').value  = propina || '';
-  document.getElementById('v-notas').value    = notas || '';
-  // Guardar referencia original
-  document.getElementById('v-edit-orig-fecha').value    = fecha;
+  document.getElementById('v-propina').value   = propina || '';
+  document.getElementById('v-notas').value     = notas || '';
+  // Guardamos _idx en v-edit-orig-fecha (reutilización del campo hidden)
+  document.getElementById('v-edit-orig-fecha').value    = idx;
   document.getElementById('v-edit-orig-servicio').value = servicio;
-  // Mostrar banner
   const banner = document.getElementById('v-edit-banner');
   banner.style.display = 'block';
-  banner.innerHTML = `✏ Corrigiendo: <strong>${isoToShort(fecha)} · ${servicio}</strong> — Cambiá lo que necesités y guardá.`;
+  banner.innerHTML = `✏ Corrigiendo fila #${idx}: <strong>${isoToShort(fecha)} · ${servicio}</strong> — Cambiá lo que necesités y guardá.`;
   document.getElementById('btn-venta').textContent = 'Guardar corrección';
-  // Ir al tab venta
   switchTab('venta');
+}
+
+async function anularVenta(idx, fechaDisplay) {
+  if (!confirm(`¿Anular la venta de ${fechaDisplay}? No se puede deshacer.`)) return;
+  try {
+    await fetch(`${CONFIG.SHEETDB_URL}?sheet=Ventas`, {
+      method:'POST', headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify({data:[{fecha:'',servicio:'',ventas:0,cubiertos:0,propina:0,notas:'anulada',tipo:'VOID',void_idx:idx}]})
+    });
+    await loadAllData();
+    showToast(`✓ Venta #${idx} anulada`,'success');
+  } catch(e) { showToast('Error al anular','error'); }
 }
 
 function clearEditMode() {
