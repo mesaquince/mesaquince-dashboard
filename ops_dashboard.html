@@ -387,6 +387,7 @@ function parseFecha(s) {
 function parseVentas(rows) {
   if (!Array.isArray(rows)) return [];
 
+  // Mapear TODAS las filas sin filtrar por fecha todavía
   const all = rows.map((r,i)=>({
     _idx:      i,
     fecha:     parseFecha(r.fecha),
@@ -396,18 +397,19 @@ function parseVentas(rows) {
     propina:   parseFloat(r.propina)||0,
     notas:     String(r.notas||'').trim(),
     tipo:      String(r.tipo||'').trim().toUpperCase(),
-    // void_idx: índice exacto de la fila que esta fila anula (más preciso que orig_fecha)
     void_idx:  (r.void_idx !== undefined && r.void_idx !== '') ? parseInt(r.void_idx) : NaN,
-  })).filter(r=>r.fecha);
+  }));
 
-  state.ventasRaw = [...all];
+  // ventasRaw: solo filas con fecha válida (para el Historial)
+  state.ventasRaw = all.filter(r => r.fecha);
 
-  // Recopilar índices exactos anulados (por void_idx)
+  // Recopilar void_idx de TODAS las filas (incluyendo las VOID sin fecha)
   const voidedIdx = new Set(
     all.filter(r => !isNaN(r.void_idx)).map(r => r.void_idx)
   );
 
   return all.filter(r => {
+    if (!r.fecha) return false;                   // requiere fecha
     if (r.tipo === 'VOID') return false;          // marcadores VOID no cuentan
     if (voidedIdx.has(r._idx)) return false;      // fila anulada por idx exacto
     return r.ventas > 0;
