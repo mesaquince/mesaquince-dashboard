@@ -404,9 +404,11 @@ function parseVentas(rows) {
   state.ventasRaw = all.filter(r => r.fecha);
 
   // Recopilar void_idx de TODAS las filas (incluyendo las VOID sin fecha)
+  // y guardarlo en state para que renderHistorial también lo use
   const voidedIdx = new Set(
     all.filter(r => !isNaN(r.void_idx)).map(r => r.void_idx)
   );
+  state.voidedIdx = voidedIdx;
 
   return all.filter(r => {
     if (!r.fecha) return false;                   // requiere fecha
@@ -930,10 +932,8 @@ function renderHistorial() {
     return '';
   };
 
-  // Marcar filas anuladas por void_idx para mostrarlas como tachadas
-  const voidedInView = new Set(
-    rows.filter(r => !isNaN(r.void_idx)).map(r => r.void_idx)
-  );
+  // Usar el set de voidedIdx ya calculado en parseVentas (incluye VOID sin fecha)
+  const voidedInView = state.voidedIdx || new Set();
 
   list.innerHTML = rows.map(r => {
     const isVoidMarker = r.tipo === 'VOID';
@@ -989,14 +989,20 @@ function openForEdit(idx, fecha, servicio, ventas, cubiertos, propina, notas) {
 
 async function anularVenta(idx, fechaDisplay) {
   if (!confirm(`¿Anular la venta de ${fechaDisplay}? No se puede deshacer.`)) return;
+  showToast('Anulando...','success');
   try {
-    await fetch(`${CONFIG.SHEETDB_URL}?sheet=Ventas`, {
+    const res = await fetch(`${CONFIG.SHEETDB_URL}?sheet=Ventas`, {
       method:'POST', headers:{'Content-Type':'text/plain'},
       body: JSON.stringify({data:[{fecha:'',servicio:'',ventas:0,cubiertos:0,propina:0,notas:'anulada',tipo:'VOID',void_idx:idx}]})
     });
+    // Pequeña espera para que el sheet procese antes de recargar
+    await new Promise(r => setTimeout(r, 1200));
     await loadAllData();
     showToast(`✓ Venta #${idx} anulada`,'success');
-  } catch(e) { showToast('Error al anular','error'); }
+  } catch(e) {
+    console.error('anularVenta error:', e);
+    showToast('Error al anular','error');
+  }
 }
 
 function clearEditMode() {
