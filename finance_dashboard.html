@@ -517,7 +517,10 @@ function enrich() {
       const pend   = Math.max(0, orig - pagado);
       const estado = pend<=0 ? 'PAGADO' : pagado>0 ? 'PARCIAL' : 'PENDIENTE';
       const nCargas = hijos.length;
-      return { ...d, orig, pagado, pend, estado, nCargas };
+      // Desglose para detectar doble conteo
+      const _pagSheet  = num(d.pagado);                   // campo 'pagado' en fila Deuda
+      const _pagReg    = pagadoBase - _pagSheet;          // pagos registrados en tab Pagos
+      return { ...d, orig, pagado, pend, estado, nCargas, _pagSheet, _pagReg };
     });
 }
 const deudaViva    = () => enrich().reduce((s,d)=>s+d.pend,0);
@@ -630,6 +633,10 @@ function renderList() {
           </div>
           ${item.estado!=='PAGADO' && item.pagado>0
             ? `<div style="font-size:10px;color:#9ca3af;">de ${euro(item.orig)}</div>` : ''}
+          ${item._pagSheet>0 && item._pagReg>0
+            ? `<div style="font-size:10px;color:#ef4444;font-weight:700;margin-top:2px;" title="Posible doble conteo">⚠ Sheet:${euro(item._pagSheet)} + Pagos:${euro(item._pagReg)}</div>` : ''}
+          ${item._pagSheet>0 && item._pagReg===0 && item.estado!=='PAGADO'
+            ? `<div style="font-size:10px;color:#9ca3af;">pag. en sheet: ${euro(item._pagSheet)}</div>` : ''}
           ${item.estado!=='PAGADO'
             ? `<div style="display:flex;gap:5px;margin-top:5px;">
                 <button onclick="event.stopPropagation();openPagoItem('${item.id}')"
