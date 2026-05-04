@@ -122,6 +122,10 @@ body{background:#f9fafb;margin:0;overscroll-behavior:none;}
     <button onclick="closePanel()" style="background:none;border:none;font-size:26px;color:#9ca3af;cursor:pointer;padding:0;line-height:1;">×</button>
   </div>
   <div class="panel-body">
+    <div id="p-edit-banner" style="display:none;background:#fef3c7;border-radius:10px;padding:10px 13px;margin-bottom:14px;font-size:13px;color:#92400e;font-weight:700;">
+      ✏ Modo corrección — se anulará el pago original y se creará uno nuevo
+    </div>
+    <input type="hidden" id="p-edit-orig-idx" value=""/>
     <div class="fg">
       <label class="fl">Acreedor</label>
       <select class="fi" id="p-id" onchange="onSelDeuda()">
@@ -388,9 +392,12 @@ body{background:#f9fafb;margin:0;overscroll-behavior:none;}
       <div id="dl"></div>
     </div>
 
-    <!-- ÚLTIMOS PAGOS -->
+    <!-- HISTORIAL PAGOS -->
     <div class="card">
-      <div style="font-size:15px;font-weight:800;color:#111;margin-bottom:14px;">Últimos pagos registrados</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <span style="font-size:15px;font-weight:800;color:#111;">Historial de pagos</span>
+        <span style="font-size:11px;color:#9ca3af;font-weight:600;">✏ corregir · 🗑 anular</span>
+      </div>
       <div id="pl"></div>
     </div>
 
@@ -406,7 +413,7 @@ const CFG = {
 };
 
 // ── STATE ──────────────────────────────────────────────────
-let S = { deuda:[], pagos:[], caja:[], ventas:[] };
+let S = { deuda:[], pagos:[], pagosRaw:[], pagosVoidedIdx:new Set(), caja:[], ventas:[] };
 let filtro = 'TODOS';
 let pinVal = '';
 
@@ -464,8 +471,20 @@ async function loadAll() {
     ]);
     // Normalizar claves a minúsculas (el Sheet tiene 'ID' en vez de 'id')
     S.deuda  = d.map(r => { const n={}; Object.keys(r).forEach(k=>n[k.toLowerCase().trim()]=r[k]); return n; });
-    // Filtrar pagos inválidos (deuda_id='undefined' de errores anteriores)
-    S.pagos  = p.filter(r => r.deuda_id && r.deuda_id !== 'undefined');
+    // Procesar pagos con soporte de anulación (VOID:N en nota)
+    const allPagos = p.map((r, i) => ({ ...r, _idx: i }));
+    const pagosVoidedIdx = new Set();
+    allPagos.forEach(r => {
+      const m = String(r.nota || '').match(/^VOID:(\d+)/);
+      if (m) pagosVoidedIdx.add(parseInt(m[1]));
+    });
+    S.pagosRaw = allPagos;
+    S.pagosVoidedIdx = pagosVoidedIdx;
+    S.pagos = allPagos.filter(r => {
+      if (!r.deuda_id || r.deuda_id === 'undefined') return false;
+      if (pagosVoidedIdx.has(r._idx)) return false;
+      return num(r.importe) > 0;
+    });
     S.caja   = c;
     S.ventas = v;
     render();
@@ -663,20 +682,38 @@ function renderList() {
 function renderPagos() {
   const rec = [...S.pagos]
     .sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)))
-    .slice(0,12);
+    .slice(0,20);
   if (!rec.length) {
     document.getElementById('pl').innerHTML =
       '<p style="text-align:center;color:#d1d5db;font-size:13px;padding:10px 0;">Sin pagos registrados aún</p>';
     return;
   }
-  document.getElementById('pl').innerHTML = rec.map(p=>`
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f9fafb;">
-      <div style="min-width:0;flex:1;padding-right:10px;">
-        <div style="font-size:13px;font-weight:700;color:#111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.concepto && p.concepto!=='undefined' ? p.concepto : (S.deuda.find(d=>d.id===p.deuda_id)||{}).concepto || p.deuda_id || '—'}</div>
-        <div style="font-size:11px;color:#9ca3af;">${String(p.fecha).substring(0,10)} · ${p.banco||'—'}${p.nota?' · '+p.nota:''}</div>
+  document.getElementById('pl').innerHTML = rec.map(p => {
+    const concepto = p.concepto && p.concepto!=='undefined' && p.concepto!=='_void_'
+      ? p.concepto
+      : (S.deuda.find(d=>d.id===p.deuda_id)||{}).concepto || p.deuda_id || '—';
+    const notaDisplay = p.nota && !String(p.nota).startsWith('VOID:') ? p.nota : '';
+    const escConc = (concepto||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const escNota = (notaDisplay||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const escBanco = (p.banco||'OTRO').replace(/'/g,"\\'");
+    const escFecha = (String(p.fecha||'').substring(0,10));
+    return `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f9fafb;gap:8px;">
+      <div style="min-width:0;flex:1;">
+        <div style="font-size:13px;font-weight:700;color:#111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${concepto}</div>
+        <div style="font-size:11px;color:#9ca3af;">${escFecha} · ${p.banco||'—'}${notaDisplay?' · '+notaDisplay:''}</div>
       </div>
-      <div style="font-size:14px;font-weight:900;color:#10b981;white-space:nowrap;">${euro(num(p.importe))}</div>
-    </div>`).join('');
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+        <div style="font-size:14px;font-weight:900;color:#10b981;">${euro(num(p.importe))}</div>
+        <button onclick="abrirCorreccionPago(${p._idx},'${p.deuda_id}',${num(p.importe)},'${escBanco}','${escFecha}','${escNota}','${escConc}')"
+          title="Corregir pago"
+          style="padding:4px 8px;background:#f3f4f6;color:#6b7280;border:none;border-radius:7px;font-size:12px;cursor:pointer;">✏</button>
+        <button onclick="anularPago(${p._idx},'${escConc}',${num(p.importe)})"
+          title="Anular pago"
+          style="padding:4px 8px;background:#fef2f2;color:#ef4444;border:none;border-radius:7px;font-size:12px;cursor:pointer;">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ── FILTRO ────────────────────────────────────────────────
@@ -701,6 +738,12 @@ function openPanel(type) {
 function closePanel() {
   document.getElementById('overlay').classList.remove('show');
   ['pago','caja','cargo','nueva-deuda'].forEach(t => document.getElementById('panel-'+t).classList.remove('open'));
+  clearEditModePago();
+}
+function clearEditModePago() {
+  document.getElementById('p-edit-orig-idx').value = '';
+  document.getElementById('p-edit-banner').style.display = 'none';
+  document.getElementById('btn-pago').textContent = 'Guardar pago';
 }
 function toggleFabMenu() {
   const m = document.getElementById('fab-menu');
@@ -765,27 +808,37 @@ function onSelDeuda() {
 
 // ── SUBMIT PAGO ───────────────────────────────────────────
 async function submitPago() {
-  const id    = document.getElementById('p-id').value;
-  const imp   = num(document.getElementById('p-imp').value);
-  const banco = document.getElementById('p-banco').value;
-  const fecha = document.getElementById('p-fecha').value;
-  const nota  = document.getElementById('p-nota').value;
+  const id       = document.getElementById('p-id').value;
+  const imp      = num(document.getElementById('p-imp').value);
+  const banco    = document.getElementById('p-banco').value;
+  const fecha    = document.getElementById('p-fecha').value;
+  const nota     = document.getElementById('p-nota').value;
+  const origIdx  = document.getElementById('p-edit-orig-idx').value;
   if (!id||!imp||!fecha) { toast('Completá acreedor, importe y fecha','err'); return; }
   const d = enrich().find(x=>x.id===id);
   const concepto = d ? d.concepto : id;
   const btn = document.getElementById('btn-pago');
   btn.disabled=true; btn.innerHTML='<span class="spin"></span> Guardando...';
   try {
+    // Si es corrección: primero anular el pago original
+    if (origIdx !== '') {
+      await fetch(`${CFG.SDB}?sheet=Pagos`, {
+        method:'POST', headers:{'Content-Type':'text/plain'},
+        body: JSON.stringify({data:[{fecha:today(), deuda_id:'_void_', concepto:'_void_', importe:0, banco:'', nota:'VOID:'+origIdx}]})
+      });
+    }
+    // Guardar pago nuevo (o corregido)
     await fetch(`${CFG.SDB}?sheet=Pagos`, {
       method:'POST', headers:{'Content-Type':'text/plain'},
       body: JSON.stringify({data:[{fecha,deuda_id:id,concepto,importe:imp,banco,nota}]})
     });
-    S.pagos.push({fecha,deuda_id:id,concepto,importe:String(imp),banco,nota});
-    render();
     document.getElementById('p-imp').value='';
     document.getElementById('p-nota').value='';
+    clearEditModePago();
     closePanel();
-    toast(`✓ ${euro(imp)} pagado a ${concepto.split(' ')[0]}`,'ok');
+    const msg = origIdx !== '' ? `✓ Pago corregido — ${euro(imp)} a ${concepto.split(' ')[0]}` : `✓ ${euro(imp)} pagado a ${concepto.split(' ')[0]}`;
+    toast(msg, 'ok');
+    setTimeout(() => loadAll(), 1200);
   } catch(e) { toast('Error al guardar','err'); }
   btn.disabled=false; btn.innerHTML='Guardar pago';
 }
@@ -915,6 +968,36 @@ async function submitNuevaDeuda() {
     toast(`✓ Deuda "${concepto}" agregada — ${euro(imp)}`,'ok');
   } catch(e) { toast('Error al guardar','err'); }
   btn.disabled=false; btn.innerHTML='Guardar nueva deuda';
+}
+
+// ── ANULAR / CORREGIR PAGO ────────────────────────────────
+async function anularPago(idx, concepto, imp) {
+  if (!confirm(`¿Anular el pago de ${euro(imp)} a "${concepto}"?\nEsto lo marcará como anulado.`)) return;
+  try {
+    await fetch(`${CFG.SDB}?sheet=Pagos`, {
+      method:'POST', headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify({data:[{fecha:today(), deuda_id:'_void_', concepto:'_void_', importe:0, banco:'', nota:'VOID:'+idx}]})
+    });
+    toast('Anulando pago...','ok');
+    setTimeout(() => loadAll(), 1200);
+  } catch(e) { toast('Error al anular','err'); }
+}
+
+function abrirCorreccionPago(idx, deudaId, importe, banco, fecha, nota, concepto) {
+  // Pre-llenar el panel de pago con los datos del pago a corregir
+  document.getElementById('p-id').value = deudaId || '';
+  onSelDeuda();
+  // Sobreescribir el importe con el real (onSelDeuda puede cambiarlo)
+  setTimeout(() => {
+    document.getElementById('p-imp').value = importe;
+  }, 50);
+  document.getElementById('p-banco').value = banco || 'OTRO';
+  document.getElementById('p-fecha').value = fecha || today();
+  document.getElementById('p-nota').value = nota || '';
+  document.getElementById('p-edit-orig-idx').value = String(idx);
+  document.getElementById('p-edit-banner').style.display = 'block';
+  document.getElementById('btn-pago').textContent = 'Guardar corrección';
+  openPanel('pago');
 }
 
 // ── TOAST ──────────────────────────────────────────────────
