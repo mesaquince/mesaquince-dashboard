@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stock · Mesaquince</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f3f4f6;color:#111;min-height:100vh;padding-bottom:80px;}
+
+/* HEADER */
+.header{background:#111827;color:#fff;padding:16px 16px 18px;position:sticky;top:0;z-index:100;}
+.header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.header-title{font-size:15px;font-weight:800;letter-spacing:0.04em;color:#f9fafb;}
+.header-sync{font-size:10px;color:#6b7280;}
+.kpis{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.kpi{background:rgba(255,255,255,0.07);border-radius:10px;padding:10px;}
+.kpi-label{font-size:9px;font-weight:700;letter-spacing:0.06em;color:#9ca3af;text-transform:uppercase;margin-bottom:4px;}
+.kpi-val{font-size:18px;font-weight:900;line-height:1;}
+.kpi-val.green{color:#34d399;}
+.kpi-val.amber{color:#fbbf24;}
+.kpi-val.red{color:#f87171;}
+.kpi-sub{font-size:9px;color:#6b7280;margin-top:3px;}
+
+/* TABS */
+.tabs{background:#fff;display:flex;padding:4px;margin:12px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.06);position:sticky;top:128px;z-index:50;}
+.tab{flex:1;padding:10px 8px;text-align:center;font-size:12px;font-weight:700;color:#6b7280;cursor:pointer;border-radius:9px;transition:all .15s;user-select:none;}
+.tab.active{background:#111827;color:#fff;}
+.tab .count{font-size:9px;font-weight:600;display:block;margin-top:1px;opacity:.7;}
+
+/* SEARCH/FILTER */
+.toolbar{margin:0 12px 10px;display:flex;gap:8px;}
+.search{flex:1;background:#fff;border:none;border-radius:10px;padding:10px 12px;font-size:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04);outline:none;}
+.filter-pill{background:#fff;padding:9px 12px;border-radius:10px;font-size:11px;font-weight:700;color:#6b7280;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.04);user-select:none;}
+.filter-pill.active{background:#dc2626;color:#fff;}
+
+/* SECTION HEADER (when group by tipo) */
+.section{padding:0 12px;margin-top:6px;}
+.section-h{font-size:10px;font-weight:800;color:#6b7280;letter-spacing:0.08em;text-transform:uppercase;padding:10px 4px 6px;display:flex;justify-content:space-between;align-items:baseline;}
+.section-count{font-size:10px;font-weight:700;color:#9ca3af;}
+
+/* ITEM CARD */
+.list{display:flex;flex-direction:column;gap:6px;}
+.card{background:#fff;border-radius:11px;padding:12px 14px;box-shadow:0 1px 2px rgba(0,0,0,0.04);position:relative;overflow:hidden;}
+.card.pedir{border-left:3px solid #dc2626;}
+.card.warning{border-left:3px solid #f59e0b;}
+.card.ok{border-left:3px solid #10b981;}
+.card.empty{border-left:3px solid #9ca3af;background:#f9fafb;}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px;}
+.card-name{font-size:13px;font-weight:800;color:#111;line-height:1.25;}
+.card-meta{font-size:10px;color:#9ca3af;margin-top:2px;}
+.card-stock{font-size:18px;font-weight:900;line-height:1;text-align:right;flex-shrink:0;}
+.card-stock.pedir{color:#dc2626;}
+.card-stock.warning{color:#d97706;}
+.card-stock.ok{color:#10b981;}
+.card-stock.empty{color:#9ca3af;}
+.card-stock-unit{font-size:9px;font-weight:600;color:#9ca3af;display:block;margin-top:2px;letter-spacing:0.03em;}
+.bar-wrap{margin-top:6px;}
+.bar-bg{height:6px;background:#f3f4f6;border-radius:99px;overflow:hidden;position:relative;}
+.bar-fill{height:100%;border-radius:99px;transition:width .35s;}
+.bar-fill.pedir{background:linear-gradient(90deg,#ef4444,#f87171);}
+.bar-fill.warning{background:linear-gradient(90deg,#f59e0b,#fbbf24);}
+.bar-fill.ok{background:linear-gradient(90deg,#10b981,#34d399);}
+.bar-fill.empty{background:#d1d5db;}
+.bar-min{position:absolute;top:-2px;width:2px;height:10px;background:#111827;opacity:.4;}
+.bar-info{display:flex;justify-content:space-between;margin-top:4px;font-size:9px;color:#9ca3af;font-weight:600;}
+.card-foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px dashed #f3f4f6;}
+.card-prov{font-size:10px;color:#6b7280;font-weight:600;}
+.card-prov.no{color:#cbd5e1;font-style:italic;}
+.badge{font-size:9px;font-weight:800;padding:3px 8px;border-radius:99px;letter-spacing:0.04em;}
+.badge.pedir{background:#fee2e2;color:#dc2626;}
+.badge.warning{background:#fef3c7;color:#d97706;}
+.badge.ok{background:#d1fae5;color:#059669;}
+.badge.empty{background:#f3f4f6;color:#6b7280;}
+
+/* EMPTY STATE */
+.empty-msg{text-align:center;padding:40px 20px;color:#9ca3af;font-size:12px;}
+.empty-msg .em-title{font-size:14px;font-weight:700;color:#6b7280;margin-bottom:6px;}
+
+/* TOAST/SYNC INDICATOR */
+.sync-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#34d399;margin-right:4px;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.banner{margin:0 12px 10px;padding:9px 12px;border-radius:9px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:8px;}
+.banner.demo{background:#fef3c7;color:#92400e;border:1px solid #fde68a;}
+.banner.error{background:#fee2e2;color:#991b1b;border:1px solid #fecaca;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="header-title">STOCK · MESAQUINCE</div>
+      <div class="header-sync"><span class="sync-dot"></span><span id="sync-msg">Cargando…</span></div>
+    </div>
+  </div>
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-label">Referencias</div>
+      <div class="kpi-val" id="k-refs">—</div>
+      <div class="kpi-sub" id="k-refs-sub">total</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">A pedir</div>
+      <div class="kpi-val red" id="k-pedir">—</div>
+      <div class="kpi-sub" id="k-pedir-sub">bajo stock mín</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Valor stock</div>
+      <div class="kpi-val green" id="k-valor">—</div>
+      <div class="kpi-sub">a precio compra</div>
+    </div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="vinos">Vinos<span class="count" id="c-vinos">0</span></div>
+  <div class="tab" data-tab="barra">Barra<span class="count" id="c-barra">0</span></div>
+  <div class="tab" data-tab="genero">Género<span class="count" id="c-genero">0</span></div>
+</div>
+
+<div id="banner-area"></div>
+
+<div class="toolbar">
+  <input id="search" class="search" placeholder="Buscar referencia, marca, proveedor…">
+  <div class="filter-pill" id="filter-pedir">Solo pedir</div>
+</div>
+
+<div id="content"></div>
+
+<script>
+// ── CONFIG ───────────────────────────────────────────────
+const SDB = 'https://script.google.com/macros/s/AKfycbwICx_HrAvhi1KHQQ38y6THjFtO156HbYqYs97It3wxDxjLSYjEZZN5JvPoOajPy32eHg/exec';
+
+// ── SEED DATA (carta actual mayo 2026) ──────────────────
+const SEED_VINOS = [
+  {id:'B01',categoria:'Blanco',estilo:'Blanco seco',año:2024,nombre:'Rupestris',cepa:'Sumoll',bodega:'Pardas',region:'Penedés',pais:'España',pvp:29,stock:0,stock_min:0,pedido_min:0,proveedor:'',precio_compra:0},
+  {id:'B02',categoria:'Blanco',estilo:'Blanco seco',año:2023,nombre:'La Llama',cepa:'Torrontés',bodega:'Belasco de Baquedano',region:'Salta',pais:'Argentina',pvp:28,stock:0,stock_min:0,pedido_min:0,proveedor:'',precio_compra:0},
+  {id:'B03',categoria:'Blanco',estilo:'Blanco seco',año:2024,nombre:'Mil Ríos',cepa:'Godello',bodega:'',region:'Valdeorras',pais:'España',pvp:32,stock:0,stock_min:0,pedido_min:0,proveedor:'',precio_compra:0},
+  {id:'B04',categoria:'Blanco',estilo:'Naranjo',año:2024,nombre:'Livverá',cepa:'Malvasía',bodega:'Escala Humana',region:'Valle de Uco',pais:'Argentina',pvp:37,stock:0,stock_min:0,pedido_min:0,proveedor:'',precio_compra:0},
+  {id:'B05',categoria:'Blanco',estilo:'Oxidativo',año:2023,nombre:'Domaine Rolet',cepa:'Chardonnay',bodega:'Domaine Rolet',region:'Jura',pais:'Francia',pvp:40,stock:0,stock_min:0,pedido_min:0,proveedor:'',precio_compra:0},
+  {id:'T01',categoria:'Tinto',estilo:'Ligero',año:2022,nombre:'La Escucha',cepa:'Mencía',bodega:'Vinos del Paseante',region:'Bierzo',pais:'España',pvp:28,stock:0,stock_min:0,pedido_min:0,proveedor:'',precio_compra:0},
+  {id:'T02',categoria:'Tinto',estilo:'Medio',año:2023,nombre:'Bruberry',cepa:'Garnacha',bodega:'Portal del Montsant',region:'Montsant',pais:'España',pvp:33,stock:0,stock_min:0,pedido_min:0,proveedor:'',precio_compra:0},
+  {id:'T03',categoria:'Tinto',estilo:'Estructurado',año:2021,nombre:'Scala Dei Prior',cepa:'Garnacha Blend',bodega:'Cellers de Scala Dei',region:'Priorat',pais:'España',pvp:43,stock:0,stock_min:0,pedido_min:0,proveedor:'',precio_compra:0},
+  {id:'T04',categoria:'Tinto',estilo:'Estructurado',año:2018,nombre:'Phylos',cepa:'Tempranillo',bodega:'De Blas Serrano',region:'Ribera del Duero',pais:'España',pvp:34,stock:0,stock_min:0,pedido_min:0,proveedor:'',precio_compra:0},
+  {id:'T05',categoria:'Tinto',estilo:'Medio',año:2024,nombre:'Villacardiel',cepa:'Tempranillo',bodega:'Altun',region:'Rioja Alavesa',pais:'España',pvp:38,stock:0,stock_min:0,pedido_min:0,proveedor:'',precio_compra:0},
+  {id:'T06',categoria:'Tinto',estilo:'Elegante',año:2024,nombre:'Newton Johnson',cepa:'Pinot Noir',bodega:'Newton Johnson',region:'Walker Bay',pais:'Sudáfrica',pvp:48,stock:0,stock_min:0,pedido_min:0,proveedor:'',precio_compra:0},
+  {id:'T07',categoria:'Tinto',estilo:'Medio',año:2023,nombre:'Nido de Tigre',cepa:'Cabernet Franc',bodega:'Del Carmen',region:'San Juan',pais:'Argentina',pvp:34,stock:0,stock_min:0,pedido_min:0,proveedor:'',precio_compra:0},
+  {id:'T08',categoria:'Tinto',estilo:'Estructurado',año:2021,nombre:'Sikuri',cepa:'Syrah',bodega:'Dupont',region:'Jujuy',pais:'Argentina',pvp:49,stock:0,stock_min:0,pedido_min:0,proveedor:'',precio_compra:0},
+  {id:'T09',categoria:'Tinto',estilo:'Natural',año:2024,nombre:'El Burro',cepa:'Malbec',bodega:'Santa Julia',region:'Maipú',pais:'Argentina',pvp:32,stock:0,stock_min:0,pedido_min:0,proveedor:'',precio_compra:0},
+  {id:'T10',categoria:'Tinto',estilo:'Medio',año:2024,nombre:'Séptima Obra',cepa:'Malbec',bodega:'Bodega Séptima',region:'Luján de Cuyo',pais:'Argentina',pvp:44,stock:0,stock_min:0,pedido_min:0,proveedor:'',precio_compra:0},
+];
+
+const SEED_BARRA = [];
+const SEED_GENERO = [];
+
+// ── STATE ────────────────────────────────────────────────
+let DATA = { vinos: SEED_VINOS, barra: SEED_BARRA, genero: SEED_GENERO };
+let DATA_SOURCE = 'demo';
+let activeTab = 'vinos';
+let onlyPedir = false;
+let searchQ = '';
+
+// ── HELPERS ──────────────────────────────────────────────
+const num = s => parseFloat(String(s||'0').replace(',','.')) || 0;
+const euro = n => '€' + (n||0).toLocaleString('es-ES', {maximumFractionDigits:0});
+
+function status(item) {
+  const s = num(item.stock), m = num(item.stock_min);
+  if (s === 0 && m === 0) return 'empty';
+  if (s === 0) return 'pedir';
+  if (s <= m) return 'pedir';
+  if (s <= m * 1.5) return 'warning';
+  return 'ok';
+}
+
+function statusLabel(st) {
+  return {pedir:'PEDIR', warning:'BAJO', ok:'OK', empty:'SIN DATOS'}[st];
+}
+
+function getActiveItems() {
+  return DATA[activeTab] || [];
+}
+
+function filterItems(items) {
+  let out = items;
+  if (onlyPedir) out = out.filter(i => status(i) === 'pedir');
+  if (searchQ) {
+    const q = searchQ.toLowerCase();
+    out = out.filter(i => (
+      (i.nombre||'').toLowerCase().includes(q) ||
+      (i.cepa||'').toLowerCase().includes(q) ||
+      (i.bodega||'').toLowerCase().includes(q) ||
+      (i.proveedor||'').toLowerCase().includes(q) ||
+      (i.tipo||'').toLowerCase().includes(q) ||
+      (i.categoria||'').toLowerCase().includes(q)
+    ));
+  }
+  return out;
+}
+
+// ── KPI / COUNT RENDER ───────────────────────────────────
+function renderKPIs() {
+  const items = getActiveItems();
+  const total = items.length;
+  const pedir = items.filter(i => status(i) === 'pedir').length;
+  const valor = items.reduce((s,i) => s + num(i.stock) * num(i.precio_compra), 0);
+
+  document.getElementById('k-refs').textContent = total;
+  document.getElementById('k-refs-sub').textContent = activeTab.toUpperCase();
+  document.getElementById('k-pedir').textContent = pedir;
+  document.getElementById('k-valor').textContent = valor > 0 ? euro(valor) : '—';
+
+  document.getElementById('c-vinos').textContent = DATA.vinos.length;
+  document.getElementById('c-barra').textContent = DATA.barra.length;
+  document.getElementById('c-genero').textContent = DATA.genero.length;
+}
+
+// ── ITEM CARD ────────────────────────────────────────────
+function cardHTML(item) {
+  const st = status(item);
+  const s = num(item.stock), m = num(item.stock_min);
+  const maxBar = Math.max(m * 2, s, 1);
+  const pct = Math.min(100, (s / maxBar) * 100);
+  const minPct = Math.min(100, (m / maxBar) * 100);
+
+  let title = item.nombre || item.producto || '—';
+  let meta = '';
+  if (activeTab === 'vinos') {
+    meta = `${item.año||''} · ${item.cepa||''} · ${item.region||''}`;
+  } else if (activeTab === 'barra') {
+    meta = `${item.tipo||''} · ${item.marca||''} · ${item.formato_cl ? item.formato_cl + 'cl' : ''}`;
+  } else {
+    meta = `${item.categoria||''} · ${item.formato||''}`;
+  }
+  meta = meta.replace(/^[\s·]+|[\s·]+$/g,'').replace(/·\s*·/g,'·');
+
+  const prov = item.proveedor ? item.proveedor : '— sin proveedor cargado —';
+  const provClass = item.proveedor ? '' : 'no';
+
+  return `
+    <div class="card ${st}">
+      <div class="card-top">
+        <div style="flex:1;min-width:0;">
+          <div class="card-name">${title}</div>
+          <div class="card-meta">${meta}</div>
+        </div>
+        <div>
+          <div class="card-stock ${st}">${s}</div>
+          <div class="card-stock-unit">de ${m||'?'} mín</div>
+        </div>
+      </div>
+      <div class="bar-wrap">
+        <div class="bar-bg">
+          <div class="bar-fill ${st}" style="width:${pct}%"></div>
+          ${m>0 ? `<div class="bar-min" style="left:${minPct}%"></div>` : ''}
+        </div>
+        <div class="bar-info">
+          <span>${item.pedido_min ? 'Min. pedido: '+item.pedido_min+' bot.' : ''}</span>
+          <span>${item.precio_compra ? '€'+item.precio_compra+'/bot' : ''}</span>
+        </div>
+      </div>
+      <div class="card-foot">
+        <div class="card-prov ${provClass}">${prov}</div>
+        <span class="badge ${st}">${statusLabel(st)}</span>
+      </div>
+    </div>
+  `;
+}
+
+function groupBy(items, key) {
+  return items.reduce((acc,i) => {
+    const k = i[key] || 'Otros';
+    (acc[k] = acc[k] || []).push(i);
+    return acc;
+  }, {});
+}
+
+function renderContent() {
+  const items = filterItems(getActiveItems());
+  const cont = document.getElementById('content');
+
+  if (items.length === 0) {
+    if (DATA[activeTab].length === 0) {
+      cont.innerHTML = `<div class="empty-msg"><div class="em-title">Sin datos cargados</div>Cuando llenes la tab <code>Stock${activeTab.charAt(0).toUpperCase()+activeTab.slice(1)}</code> en Google Sheets, aparece acá.</div>`;
+    } else {
+      cont.innerHTML = `<div class="empty-msg"><div class="em-title">Sin resultados</div>Probá quitar el filtro o cambiar la búsqueda.</div>`;
+    }
+    return;
+  }
+
+  let groupKey = 'categoria';
+  if (activeTab === 'barra') groupKey = 'tipo';
+  if (activeTab === 'genero') groupKey = 'categoria';
+
+  const groups = groupBy(items, groupKey);
+  const orderedKeys = Object.keys(groups).sort();
+
+  let html = '';
+  for (const k of orderedKeys) {
+    html += `<div class="section">
+      <div class="section-h"><span>${k}</span><span class="section-count">${groups[k].length} ref</span></div>
+      <div class="list">${groups[k].map(cardHTML).join('')}</div>
+    </div>`;
+  }
+  cont.innerHTML = html;
+}
+
+function render() {
+  renderKPIs();
+  renderContent();
+}
+
+// ── DATA LOAD ────────────────────────────────────────────
+async function loadTab(tabName, sheetName) {
+  try {
+    const r = await fetch(`${SDB}?sheet=${sheetName}`);
+    if (!r.ok) throw new Error('http '+r.status);
+    const data = await r.json();
+    if (Array.isArray(data) && data.length > 0) {
+      DATA[tabName] = data;
+      return true;
+    }
+  } catch(e) {
+    console.warn(`${sheetName} fetch falló:`, e.message);
+  }
+  return false;
+}
+
+async function loadAll() {
+  const banner = document.getElementById('banner-area');
+  document.getElementById('sync-msg').textContent = 'Sincronizando…';
+
+  const results = await Promise.all([
+    loadTab('vinos', 'StockVinos'),
+    loadTab('barra', 'StockBarra'),
+    loadTab('genero', 'StockGenero'),
+  ]);
+
+  const liveTabs = results.filter(Boolean).length;
+
+  if (liveTabs === 3) {
+    DATA_SOURCE = 'live';
+    banner.innerHTML = '';
+    document.getElementById('sync-msg').textContent = 'Sincronizado · ' + new Date().toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit'});
+  } else if (liveTabs > 0) {
+    DATA_SOURCE = 'mixed';
+    banner.innerHTML = `<div class="banner demo">⚠️ ${3-liveTabs} de 3 tabs aún no creadas en Google Sheets — mostrando datos demo en esa(s) sección(es).</div>`;
+    document.getElementById('sync-msg').textContent = 'Parcial · ' + new Date().toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit'});
+  } else {
+    DATA_SOURCE = 'demo';
+    banner.innerHTML = `<div class="banner demo">📋 Modo demo — creá las tabs StockVinos / StockBarra / StockGenero en tu Google Sheet para ver datos reales.</div>`;
+    document.getElementById('sync-msg').textContent = 'Demo';
+  }
+
+  render();
+}
+
+// ── EVENTS ───────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    activeTab = t.dataset.tab;
+    render();
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+});
+
+document.getElementById('search').addEventListener('input', e => {
+  searchQ = e.target.value.trim();
+  renderContent();
+});
+
+document.getElementById('filter-pedir').addEventListener('click', e => {
+  onlyPedir = !onlyPedir;
+  e.target.classList.toggle('active', onlyPedir);
+  renderContent();
+});
+
+// ── INIT ─────────────────────────────────────────────────
+render();
+loadAll();
+setInterval(loadAll, 5 * 60 * 1000); // refresh cada 5min
+</script>
+</body>
+</html>
