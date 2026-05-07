@@ -119,6 +119,10 @@
 
     <!-- FACTURA -->
     <div id="form-factura" style="display:none;">
+      <div id="f-edit-banner" style="display:none;background:#fef3c7;border-radius:10px;padding:10px 13px;margin-bottom:14px;font-size:13px;color:#92400e;font-weight:700;">
+        ✏ Editando previsión — se reemplazará la entrada original
+      </div>
+      <input type="hidden" id="f-edit-orig-idx" value=""/>
       <div class="fg"><label class="fl">Proveedor</label><input class="fi" type="text" id="f-proveedor" placeholder="Makro, Gas Natural..."/></div>
       <div class="fg"><label class="fl">Descripción</label><input class="fi" type="text" id="f-descripcion" placeholder="Compra semanal..."/></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -420,14 +424,15 @@ function parseVentas(rows) {
 }
 function parseAP(rows) {
   if (!Array.isArray(rows)) return [];
-  return rows.map(r=>({
+  return rows.map((r,i)=>({
+    _idx:        i,
     proveedor:   String(r.proveedor||'').trim(),
     descripcion: String(r.descripcion||'').trim(),
     importe:     parseFloat(r.importe)||0,
     vencimiento: String(r.vencimiento||'').trim(),
     categoria:   String(r.categoria||'Otros').trim(),
-    estado:      String(r.estado||'pendiente').trim(),
-  })).filter(r=>r.proveedor);
+    estado:      String(r.estado||'pendiente').trim().toLowerCase(),
+  })).filter(r => r.proveedor && r.estado !== 'anulada');
 }
 
 async function loadAllData() {
@@ -800,24 +805,58 @@ function renderPendingList() {
   const pending = state.ap.filter(ap=>ap.estado==='pendiente');
   document.getElementById('pending-list').innerHTML = pending.length===0
     ? '<p style="font-size:13px;color:#9ca3af;text-align:center;padding:20px;">No hay facturas pendientes 🎉</p>'
-    : pending.map((ap,i)=>`
-      <div style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #f3f4f6;border-radius:12px;margin-bottom:8px;background:#f9fafb;">
-        <div style="flex:1;">
-          <div style="font-size:13px;font-weight:700;color:#111;">${ap.proveedor}</div>
-          <div style="font-size:11px;color:#9ca3af;">${ap.descripcion} · ${isoToShort(ap.vencimiento)} · <strong style="color:#374151;">${fmt(ap.importe)}</strong></div>
+    : pending.map((ap)=>{
+        const esc = s => String(s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+        return `
+      <div style="display:flex;align-items:center;gap:8px;padding:12px;border:1px solid #f3f4f6;border-radius:12px;margin-bottom:8px;background:#f9fafb;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:#111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ap.proveedor}</div>
+          <div style="font-size:11px;color:#9ca3af;">${ap.descripcion||'—'} · ${isoToShort(ap.vencimiento)} · <strong style="color:#374151;">${fmt(ap.importe)}</strong></div>
         </div>
-        <button onclick="markPaid(${i})" style="padding:6px 12px;background:#10b981;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">✓ Pagado</button>
-      </div>`).join('');
+        <button onclick="markPaid(${ap._idx})" style="padding:6px 10px;background:#10b981;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">✓ Pagar</button>
+        <button onclick="editarFactura(${ap._idx},'${esc(ap.proveedor)}','${esc(ap.descripcion)}',${ap.importe},'${ap.vencimiento}','${esc(ap.categoria)}')"
+          title="Editar" style="padding:6px 8px;background:#f3f4f6;color:#6b7280;border:none;border-radius:8px;font-size:13px;cursor:pointer;">✏</button>
+        <button onclick="anularAP(${ap._idx},'${esc(ap.proveedor)}')"
+          title="Eliminar" style="padding:6px 8px;background:#fef2f2;color:#ef4444;border:none;border-radius:8px;font-size:13px;cursor:pointer;">🗑</button>
+      </div>`;
+      }).join('');
 }
 
-async function markPaid(idx) {
-  const pending = state.ap.filter(ap=>ap.estado==='pendiente');
-  const ap = pending[idx]; if(!ap) return;
-  await postToSheetDB({type:'pagar',proveedor:ap.proveedor,vencimiento:ap.vencimiento});
-  const ri = state.ap.findIndex(a=>a.proveedor===ap.proveedor&&a.vencimiento===ap.vencimiento);
-  if(ri>=0) state.ap[ri].estado='pagado';
+async function markPaid(rowIdx) {
+  const ap = state.ap.find(a => a._idx === rowIdx); if(!ap) return;
+  await postToSheetDB({type:'pagar', row_idx: rowIdx, proveedor:ap.proveedor, vencimiento:ap.vencimiento});
+  ap.estado = 'pagado';
   renderAP(); renderKPIs(); renderPendingList();
   showToast(`✓ ${ap.proveedor} pagado`,'success');
+}
+
+async function anularAP(rowIdx, proveedor) {
+  if (!confirm(`¿Eliminar la previsión de "${proveedor}"?`)) return;
+  try {
+    await postToSheetDB({type:'anular_ap', row_idx: rowIdx});
+    const i = state.ap.findIndex(a => a._idx === rowIdx);
+    if (i >= 0) state.ap.splice(i, 1);
+    renderAP(); renderKPIs(); renderPendingList();
+    showToast(`✓ "${proveedor}" eliminada`, 'success');
+  } catch(e) { showToast('Error al eliminar','error'); }
+}
+
+function editarFactura(rowIdx, proveedor, descripcion, importe, vencimiento, categoria) {
+  document.getElementById('f-proveedor').value   = proveedor;
+  document.getElementById('f-descripcion').value = descripcion;
+  document.getElementById('f-importe').value     = importe;
+  document.getElementById('f-vencimiento').value = vencimiento;
+  document.getElementById('f-categoria').value   = categoria;
+  document.getElementById('f-edit-orig-idx').value = String(rowIdx);
+  document.getElementById('f-edit-banner').style.display = 'block';
+  document.getElementById('btn-factura').textContent = 'Guardar cambios';
+  openPanel('factura');
+}
+
+function clearEditModeFactura() {
+  document.getElementById('f-edit-orig-idx').value = '';
+  document.getElementById('f-edit-banner').style.display = 'none';
+  document.getElementById('btn-factura').textContent = 'Guardar factura';
 }
 
 // ── WRITE TO SHEETDB ──────────────────────────────────────
@@ -838,9 +877,12 @@ async function postToSheetDB(payload) {
         importe:payload.importe,vencimiento:payload.vencimiento,
         categoria:payload.categoria||'Otros',estado:'pendiente'}]})});
   } else if (payload.type==='pagar') {
-    await fetch(`${base}/proveedor/${encodeURIComponent(payload.proveedor)}?sheet=AP`,{
-      method:'PATCH',headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify({data:{estado:'pagado'}})});
+    await fetch(base, {method:'POST', headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({type:'pagar', row_idx:payload.row_idx,
+        proveedor:payload.proveedor, vencimiento:payload.vencimiento})});
+  } else if (payload.type==='anular_ap') {
+    await fetch(base, {method:'POST', headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({type:'anular_ap', row_idx:payload.row_idx})});
   }
 }
 
@@ -854,6 +896,7 @@ function switchTab(tab)  {
   });
   if (tab==='historial') renderHistorial();
   if (tab==='venta') clearEditMode();
+  if (tab==='factura') clearEditModeFactura();
 }
 
 async function submitVenta() {
@@ -892,26 +935,34 @@ async function submitVenta() {
 }
 
 async function submitFactura() {
-  const proveedor=document.getElementById('f-proveedor').value.trim();
-  const descripcion=document.getElementById('f-descripcion').value.trim();
-  const importe=parseFloat(document.getElementById('f-importe').value);
-  const vencimiento=document.getElementById('f-vencimiento').value;
-  const categoria=document.getElementById('f-categoria').value;
+  const proveedor   = document.getElementById('f-proveedor').value.trim();
+  const descripcion = document.getElementById('f-descripcion').value.trim();
+  const importe     = parseFloat(document.getElementById('f-importe').value);
+  const vencimiento = document.getElementById('f-vencimiento').value;
+  const categoria   = document.getElementById('f-categoria').value;
+  const origIdx     = document.getElementById('f-edit-orig-idx').value;
+  const isEdit      = origIdx !== '';
   if(!proveedor||!importe||!vencimiento){showToast('Completá proveedor, importe y vencimiento','error');return;}
   const btn=document.getElementById('btn-factura');
-  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Guardando...';
+  btn.disabled=true; btn.innerHTML=`<span class="spinner"></span> ${isEdit?'Actualizando...':'Guardando...'}`;
   try {
+    // Si es edición: primero anular la original, luego guardar la corregida
+    if (isEdit) {
+      await postToSheetDB({type:'anular_ap', row_idx: parseInt(origIdx)});
+      const i = state.ap.findIndex(a => a._idx === parseInt(origIdx));
+      if (i >= 0) state.ap.splice(i, 1);
+    }
     await postToSheetDB({type:'factura',proveedor,descripcion,importe,vencimiento,categoria});
-    state.ap.push({proveedor,descripcion,importe,vencimiento,categoria,estado:'pendiente'});
-    state.ap.sort((a,b)=>a.vencimiento.localeCompare(b.vencimiento));
-    renderAP();renderKPIs();renderPendingList();
+    // Recargar para obtener _idx correcto de la fila nueva
+    await loadAllData();
     document.getElementById('f-proveedor').value='';
     document.getElementById('f-descripcion').value='';
     document.getElementById('f-importe').value='';
-    showToast(`✓ Factura de ${proveedor} guardada`,'success');
+    clearEditModeFactura();
+    showToast(isEdit ? `✓ "${proveedor}" actualizada` : `✓ Factura de ${proveedor} guardada`,'success');
     closePanel();
   } catch(e){showToast('Error al guardar','error');}
-  btn.disabled=false;btn.innerHTML='Guardar factura';
+  btn.disabled=false; btn.innerHTML= isEdit ? 'Guardar cambios' : 'Guardar factura';
 }
 
 // ── HISTORIAL ─────────────────────────────────────────────
