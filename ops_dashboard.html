@@ -424,7 +424,15 @@ function parseVentas(rows) {
 }
 function parseAP(rows) {
   if (!Array.isArray(rows)) return [];
-  return rows.map((r,i)=>({
+  // Recopilar índices anulados — filas con proveedor='_VOID_', descripcion=idx
+  const voidedIdx = new Set();
+  rows.forEach((r, i) => {
+    if (String(r.proveedor||'').trim() === '_VOID_') {
+      const idx = parseInt(r.descripcion);
+      if (!isNaN(idx)) voidedIdx.add(idx);
+    }
+  });
+  return rows.map((r, i) => ({
     _idx:        i,
     proveedor:   String(r.proveedor||'').trim(),
     descripcion: String(r.descripcion||'').trim(),
@@ -432,7 +440,12 @@ function parseAP(rows) {
     vencimiento: String(r.vencimiento||'').trim(),
     categoria:   String(r.categoria||'Otros').trim(),
     estado:      String(r.estado||'pendiente').trim().toLowerCase(),
-  })).filter(r => r.proveedor && r.estado !== 'anulada');
+  })).filter(r =>
+    r.proveedor &&
+    r.proveedor !== '_VOID_' &&
+    !voidedIdx.has(r._idx) &&
+    r.estado !== 'anulada'
+  );
 }
 
 async function loadAllData() {
@@ -833,10 +846,14 @@ async function markPaid(rowIdx) {
 async function anularAP(rowIdx, proveedor) {
   if (!confirm(`¿Eliminar la previsión de "${proveedor}"?`)) return;
   try {
-    const ap = state.ap.find(a => a._idx === rowIdx);
-    if (!ap) return;
-    // Usar 'pagar' que ya existe en el Apps Script actual → marca estado='pagado'
-    await postToSheetDB({type:'pagar', proveedor: ap.proveedor, vencimiento: ap.vencimiento});
+    // POST fila _VOID_ al sheet AP — mismo patrón que ventas, no requiere redespliegue
+    await fetch(`${CONFIG.SHEETDB_URL}?sheet=AP`, {
+      method: 'POST', headers: {'Content-Type': 'text/plain'},
+      body: JSON.stringify({data:[{
+        proveedor: '_VOID_', descripcion: String(rowIdx),
+        importe: 0, vencimiento: today(), categoria: 'Otros', estado: 'void'
+      }]})
+    });
     const i = state.ap.findIndex(a => a._idx === rowIdx);
     if (i >= 0) state.ap.splice(i, 1);
     renderAP(); renderKPIs(); renderPendingList();
@@ -949,14 +966,15 @@ async function submitFactura() {
   const btn=document.getElementById('btn-factura');
   btn.disabled=true; btn.innerHTML=`<span class="spinner"></span> ${isEdit?'Actualizando...':'Guardando...'}`;
   try {
-    // Si es edición: marcar original como pagada (usa el Apps Script actual), luego guardar corregida
+    // Si es edición: postar fila _VOID_ para anular la original
     if (isEdit) {
-      const orig = state.ap.find(a => a._idx === parseInt(origIdx));
-      if (orig) {
-        await postToSheetDB({type:'pagar', proveedor: orig.proveedor, vencimiento: orig.vencimiento});
-        const i = state.ap.findIndex(a => a._idx === parseInt(origIdx));
-        if (i >= 0) state.ap.splice(i, 1);
-      }
+      await fetch(`${CONFIG.SHEETDB_URL}?sheet=AP`, {
+        method: 'POST', headers: {'Content-Type': 'text/plain'},
+        body: JSON.stringify({data:[{
+          proveedor: '_VOID_', descripcion: String(parseInt(origIdx)),
+          importe: 0, vencimiento: today(), categoria: 'Otros', estado: 'void'
+        }]})
+      });
     }
     await postToSheetDB({type:'factura',proveedor,descripcion,importe,vencimiento,categoria});
     // Recargar para obtener _idx correcto de la fila nueva
