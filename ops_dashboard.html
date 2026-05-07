@@ -833,7 +833,10 @@ async function markPaid(rowIdx) {
 async function anularAP(rowIdx, proveedor) {
   if (!confirm(`¿Eliminar la previsión de "${proveedor}"?`)) return;
   try {
-    await postToSheetDB({type:'anular_ap', row_idx: rowIdx});
+    const ap = state.ap.find(a => a._idx === rowIdx);
+    if (!ap) return;
+    // Usar 'pagar' que ya existe en el Apps Script actual → marca estado='pagado'
+    await postToSheetDB({type:'pagar', proveedor: ap.proveedor, vencimiento: ap.vencimiento});
     const i = state.ap.findIndex(a => a._idx === rowIdx);
     if (i >= 0) state.ap.splice(i, 1);
     renderAP(); renderKPIs(); renderPendingList();
@@ -946,11 +949,14 @@ async function submitFactura() {
   const btn=document.getElementById('btn-factura');
   btn.disabled=true; btn.innerHTML=`<span class="spinner"></span> ${isEdit?'Actualizando...':'Guardando...'}`;
   try {
-    // Si es edición: primero anular la original, luego guardar la corregida
+    // Si es edición: marcar original como pagada (usa el Apps Script actual), luego guardar corregida
     if (isEdit) {
-      await postToSheetDB({type:'anular_ap', row_idx: parseInt(origIdx)});
-      const i = state.ap.findIndex(a => a._idx === parseInt(origIdx));
-      if (i >= 0) state.ap.splice(i, 1);
+      const orig = state.ap.find(a => a._idx === parseInt(origIdx));
+      if (orig) {
+        await postToSheetDB({type:'pagar', proveedor: orig.proveedor, vencimiento: orig.vencimiento});
+        const i = state.ap.findIndex(a => a._idx === parseInt(origIdx));
+        if (i >= 0) state.ap.splice(i, 1);
+      }
     }
     await postToSheetDB({type:'factura',proveedor,descripcion,importe,vencimiento,categoria});
     // Recargar para obtener _idx correcto de la fila nueva
