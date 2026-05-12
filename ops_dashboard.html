@@ -816,23 +816,35 @@ function toggleAP() { apExpanded=!apExpanded; renderAP(); }
 // ── PENDING LIST ──────────────────────────────────────────
 function renderPendingList() {
   const pending = state.ap.filter(ap=>ap.estado==='pendiente');
-  document.getElementById('pending-list').innerHTML = pending.length===0
-    ? '<p style="font-size:13px;color:#9ca3af;text-align:center;padding:20px;">No hay facturas pendientes 🎉</p>'
-    : pending.map((ap)=>{
-        const esc = s => String(s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
-        return `
-      <div style="display:flex;align-items:center;gap:8px;padding:12px;border:1px solid #f3f4f6;border-radius:12px;margin-bottom:8px;background:#f9fafb;">
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:700;color:#111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ap.proveedor}</div>
-          <div style="font-size:11px;color:#9ca3af;">${ap.descripcion||'—'} · ${isoToShort(ap.vencimiento)} · <strong style="color:#374151;">${fmt(ap.importe)}</strong></div>
-        </div>
-        <button onclick="markPaid(${ap._idx})" style="padding:6px 10px;background:#10b981;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">✓ Pagar</button>
-        <button onclick="editarFactura(${ap._idx},'${esc(ap.proveedor)}','${esc(ap.descripcion)}',${ap.importe},'${ap.vencimiento}','${esc(ap.categoria)}')"
-          title="Editar" style="padding:6px 8px;background:#f3f4f6;color:#6b7280;border:none;border-radius:8px;font-size:13px;cursor:pointer;">✏</button>
-        <button onclick="anularAP(${ap._idx},'${esc(ap.proveedor)}')"
-          title="Eliminar" style="padding:6px 8px;background:#fef2f2;color:#ef4444;border:none;border-radius:8px;font-size:13px;cursor:pointer;">🗑</button>
-      </div>`;
-      }).join('');
+  const el = document.getElementById('pending-list');
+  if (!pending.length) {
+    el.innerHTML = '<p style="font-size:13px;color:#9ca3af;text-align:center;padding:20px;">No hay facturas pendientes 🎉</p>';
+    return;
+  }
+  el.innerHTML = pending.map((ap, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:12px;border:1px solid #f3f4f6;border-radius:12px;margin-bottom:8px;background:#f9fafb;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;color:#111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ap.proveedor}</div>
+        <div style="font-size:11px;color:#9ca3af;">${ap.descripcion||'—'} · ${isoToShort(ap.vencimiento)} · <strong style="color:#374151;">${fmt(ap.importe)}</strong></div>
+      </div>
+      <button data-action="pagar" data-i="${i}" style="padding:6px 10px;background:#10b981;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">✓ Pagar</button>
+      <button data-action="editar" data-i="${i}" title="Editar" style="padding:6px 8px;background:#f3f4f6;color:#6b7280;border:none;border-radius:8px;font-size:13px;cursor:pointer;">✏</button>
+      <button data-action="anular" data-i="${i}" title="Eliminar" style="padding:6px 8px;background:#fef2f2;color:#ef4444;border:none;border-radius:8px;font-size:13px;cursor:pointer;">🗑</button>
+    </div>`).join('');
+
+  // Event delegation — evita problemas de escaping en onclick inline
+  el.onclick = function(e) {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    const i   = parseInt(btn.dataset.i);
+    const pnd = state.ap.filter(ap=>ap.estado==='pendiente');
+    const ap  = pnd[i];
+    if (!ap) return;
+    const action = btn.dataset.action;
+    if (action === 'pagar')  markPaid(ap._idx);
+    if (action === 'anular') anularAP(ap._idx, ap.proveedor);
+    if (action === 'editar') editarFactura(ap._idx, ap.proveedor, ap.descripcion, ap.importe, ap.vencimiento, ap.categoria);
+  };
 }
 
 async function markPaid(rowIdx) {
@@ -915,8 +927,9 @@ function switchTab(tab)  {
     document.getElementById(`tab-${t}`).className = `panel-tab${t===tab?' active':''}`;
   });
   if (tab==='historial') renderHistorial();
-  if (tab==='venta') clearEditMode();
-  if (tab==='factura') clearEditModeFactura();
+  if (tab==='pagar')    renderPendingList();
+  if (tab==='venta')    clearEditMode();
+  if (tab==='factura')  clearEditModeFactura();
 }
 
 async function submitVenta() {
