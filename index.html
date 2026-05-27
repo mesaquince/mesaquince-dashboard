@@ -3234,72 +3234,77 @@ function showGmailSetupInfo() {
 }
 
 // ── MÓDULO 6 — PASIVO DE PROVEEDORES (DEUDA)
+// v3 = corte 24.05.2026 (documento M15)
+const DEUDA_SEED_VERSION = 3;
 // ═══════════════════════════════════════════════════════
 
-// Datos semilla del deuda_setup.csv al 31.03.2026
+// Datos semilla corte 24.05.2026 — documento M15 Alejandro
 const DEUDA_SEED = [
-  {id:'PROV-001',categoria:'PROVEEDORES',concepto:'FRUITES SELECTES TORRENT SL.',urgencia:'DILATADO',importe_original:13044.92,en_plan:true,nota:'Posibilidad de plan de pago'},
-  {id:'PROV-002',categoria:'PROVEEDORES',concepto:'Enuve (La Finca)',urgencia:'NECESARIO',importe_original:6217.35,en_plan:true,nota:'Posibilidad de plan de pago'},
-  {id:'PROV-003',categoria:'PROVEEDORES',concepto:'Makro Distribución',urgencia:'NECESARIO',importe_original:2432.77,en_plan:false,nota:''},
-  {id:'PROV-004',categoria:'PROVEEDORES',concepto:'LAFUENTE LORENZO SA',urgencia:'NECESARIO',importe_original:2093.29,en_plan:true,nota:'Posibilidad de plan de pago'},
-  {id:'PROV-005',categoria:'PROVEEDORES',concepto:'THE MALBEC HOUSE SL',urgencia:'NECESARIO',importe_original:2046.26,en_plan:false,nota:''},
-  {id:'PROV-006',categoria:'PROVEEDORES',concepto:'ATLANTIC FINANCE SOLUTIONS SL',urgencia:'DILATADO',importe_original:1404.81,en_plan:false,nota:''},
-  {id:'PROV-007',categoria:'PROVEEDORES',concepto:'ASSOLIM ALIMENTARIA SL',urgencia:'DILATADO',importe_original:1352.52,en_plan:true,nota:'Posibilidad de plan de pago'},
-  {id:'PROV-008',categoria:'PROVEEDORES',concepto:'DE BLAS SERRANO SL',urgencia:'NECESARIO',importe_original:1254.10,en_plan:true,nota:'Posibilidad de plan de pago'},
-  {id:'PROV-009',categoria:'PROVEEDORES',concepto:'TEXIA SEAMLESS S.L. (Papelera)',urgencia:'NECESARIO',importe_original:1215.62,en_plan:false,nota:''},
-  {id:'PROV-010',categoria:'PROVEEDORES',concepto:'MANUFACTURAS CATOR SL',urgencia:'DILATADO',importe_original:1198.92,en_plan:true,nota:'Posibilidad de plan de pago'},
-  {id:'PROV-011',categoria:'PROVEEDORES',concepto:'QUALITY ICE 1988 S.L.',urgencia:'NECESARIO',importe_original:1180.58,en_plan:false,nota:''},
-  {id:'PROV-012',categoria:'PROVEEDORES',concepto:'WINEISSOCIAL SL.',urgencia:'EVITABLE',importe_original:931.37,en_plan:false,nota:'Disputar / negociar'},
-  {id:'PROV-013',categoria:'PROVEEDORES',concepto:'LLENYES I CARBONS POLINYA SLU',urgencia:'DILATADO',importe_original:847.00,en_plan:true,nota:'Posibilidad de plan de pago'},
+  // ── PROVEEDORES ──────────────────────────────────────────
+  {id:'PROV-001',categoria:'PROVEEDORES',concepto:'FRUITES SELECTES TORRENT SL.',urgencia:'DILATADO',importe_original:10017.20,en_plan:true,nota:'Plan de pagos. Quita -€3.000 aplicada (negoc. Felipe)'},
+  {id:'PROV-002',categoria:'PROVEEDORES',concepto:'Enuve (La Finca)',urgencia:'NECESARIO',importe_original:6217.35,en_plan:true,nota:'Plan: €650 único + 18 cuotas x €309,30'},
+  {id:'PROV-003',categoria:'PROVEEDORES',concepto:'Makro Distribución',urgencia:'NECESARIO',importe_original:2432.77,en_plan:true,nota:'Pago único €2.432,77'},
+  {id:'PROV-004',categoria:'PROVEEDORES',concepto:'THE MALBEC HOUSE SL',urgencia:'NECESARIO',importe_original:2148.48,en_plan:true,nota:'Plan de pagos'},
+  {id:'PROV-005',categoria:'PROVEEDORES',concepto:'LAFUENTE LORENZO SA',urgencia:'NECESARIO',importe_original:1546.37,en_plan:true,nota:'Plan de pagos'},
+  {id:'PROV-006',categoria:'PROVEEDORES',concepto:'ATLANTIC FINANCE SOLUTIONS SL',urgencia:'DILATADO',importe_original:1404.81,en_plan:true,nota:'Plan: 9 cuotas x €156,09'},
+  {id:'PROV-007',categoria:'PROVEEDORES',concepto:'DE BLAS SERRANO SL',urgencia:'NECESARIO',importe_original:1367.60,en_plan:true,nota:'Plan de pagos'},
+  {id:'PROV-008',categoria:'PROVEEDORES',concepto:'ASSOLIM ALIMENTARIA SL',urgencia:'DILATADO',importe_original:1352.52,en_plan:true,nota:'Plan: 9 cuotas x €150,28'},
+  {id:'PROV-009',categoria:'PROVEEDORES',concepto:'TEXIA SEAMLESS S.L. (Papelera)',urgencia:'NECESARIO',importe_original:1215.62,en_plan:true,nota:'Pago único €1.215,62'},
+  {id:'PROV-010',categoria:'PROVEEDORES',concepto:'MANUFACTURAS CATOR SL',urgencia:'DILATADO',importe_original:1198.92,en_plan:true,nota:'Plan de pagos'},
+  {id:'PROV-011',categoria:'PROVEEDORES',concepto:'QUALITY ICE 1988 S.L.',urgencia:'NECESARIO',importe_original:1238.57,en_plan:true,nota:'Plan de pagos. 6 cuotas x €206'},
+  {id:'PROV-012',categoria:'PROVEEDORES',concepto:'WINEISSOCIAL SL.',urgencia:'EVITABLE',importe_original:931.37,en_plan:false,nota:'Posible disputa / negociar quita'},
+  {id:'PROV-013',categoria:'PROVEEDORES',concepto:'LLENYES I CARBONS POLINYA SLU',urgencia:'DILATADO',importe_original:847.00,en_plan:true,nota:'Plan de pagos'},
   {id:'PROV-014',categoria:'PROVEEDORES',concepto:'SMART WATER SL.',urgencia:'NECESARIO',importe_original:747.78,en_plan:false,nota:''},
-  {id:'PROV-015',categoria:'PROVEEDORES',concepto:'CAN RAMOS 2 SL',urgencia:'NECESARIO',importe_original:732.14,en_plan:false,nota:''},
-  {id:'PROV-016',categoria:'PROVEEDORES',concepto:'COCA-COLA EUROPACIFIC',urgencia:'NECESARIO',importe_original:699.47,en_plan:false,nota:''},
-  {id:'PROV-017',categoria:'PROVEEDORES',concepto:'NEGOCIANTS SLU',urgencia:'NECESARIO',importe_original:693.30,en_plan:false,nota:''},
-  {id:'PROV-018',categoria:'PROVEEDORES',concepto:'MASSAL SELECTION S.L.',urgencia:'DILATADO',importe_original:635.44,en_plan:false,nota:''},
-  {id:'PROV-019',categoria:'PROVEEDORES',concepto:'PEIXOS J ARROM SL',urgencia:'DILATADO',importe_original:533.51,en_plan:false,nota:''},
-  {id:'PROV-020',categoria:'PROVEEDORES',concepto:'MONTSERRAT FORNERS 1894 SL',urgencia:'DILATADO',importe_original:500.00,en_plan:false,nota:''},
-  {id:'PROV-021',categoria:'PROVEEDORES',concepto:'Carnia',urgencia:'DILATADO',importe_original:487.52,en_plan:false,nota:''},
-  {id:'PROV-022',categoria:'PROVEEDORES',concepto:'LA VIGILIA LOGISTIC SLU',urgencia:'NECESARIO',importe_original:386.76,en_plan:false,nota:''},
-  {id:'PROV-023',categoria:'PROVEEDORES',concepto:'DISTRIBUCIO PRIMERA QUALITAT SL',urgencia:'DILATADO',importe_original:369.85,en_plan:false,nota:''},
-  {id:'PROV-024',categoria:'PROVEEDORES',concepto:'SINGLE TASTE SL',urgencia:'NECESARIO',importe_original:322.34,en_plan:false,nota:''},
-  {id:'PROV-025',categoria:'PROVEEDORES',concepto:'COMERCIAL ESCOLA SL',urgencia:'NECESARIO',importe_original:277.81,en_plan:false,nota:''},
-  {id:'PROV-026',categoria:'PROVEEDORES',concepto:'GAUCHO & BOINA SL',urgencia:'DILATADO',importe_original:255.62,en_plan:false,nota:''},
-  {id:'PROV-027',categoria:'PROVEEDORES',concepto:'GRUPO EMPRESARIAL MAGOASE SL',urgencia:'NECESARIO',importe_original:229.48,en_plan:false,nota:''},
-  {id:'PROV-028',categoria:'PROVEEDORES',concepto:'Kiku S.L.U.',urgencia:'DILATADO',importe_original:184.52,en_plan:false,nota:''},
-  {id:'PROV-029',categoria:'PROVEEDORES',concepto:'TORNADO COFFEE ROASTERS SL',urgencia:'DILATADO',importe_original:169.28,en_plan:false,nota:''},
-  {id:'PROV-030',categoria:'PROVEEDORES',concepto:'AGUAVIDA LLOPS SL',urgencia:'NECESARIO',importe_original:159.72,en_plan:false,nota:''},
-  {id:'PROV-031',categoria:'PROVEEDORES',concepto:'DISTRIBUCIONES BARNA SA',urgencia:'NECESARIO',importe_original:156.99,en_plan:false,nota:''},
-  {id:'PROV-032',categoria:'PROVEEDORES',concepto:'IMPORTADORA EXAL DE ALIMENTOS SL',urgencia:'DILATADO',importe_original:149.93,en_plan:false,nota:''},
-  {id:'PROV-033',categoria:'PROVEEDORES',concepto:'CALIDOSCOPI VINS SL',urgencia:'NECESARIO',importe_original:148.89,en_plan:false,nota:''},
-  {id:'PROV-034',categoria:'PROVEEDORES',concepto:'Rooftop Smokehouse S.L.',urgencia:'NECESARIO',importe_original:143.00,en_plan:false,nota:''},
-  {id:'PROV-035',categoria:'PROVEEDORES',concepto:'SOULBLIM S.L. (GROUP FRUCTUS)',urgencia:'DILATADO',importe_original:141.09,en_plan:false,nota:''},
-  {id:'PROV-036',categoria:'PROVEEDORES',concepto:'LA BODEGUILLA S.L.',urgencia:'DILATADO',importe_original:123.78,en_plan:false,nota:''},
-  {id:'PROV-037',categoria:'PROVEEDORES',concepto:'WINE O\'CLOCK IMPORTACIONES S.L.',urgencia:'EVITABLE',importe_original:80.01,en_plan:false,nota:'Disputar / negociar'},
-  {id:'PROV-038',categoria:'PROVEEDORES',concepto:'ULTRAPLUS MAXIMEGA S.L.',urgencia:'DILATADO',importe_original:66.96,en_plan:false,nota:''},
-  {id:'PROV-039',categoria:'PROVEEDORES',concepto:'EMCADI SA',urgencia:'NECESARIO',importe_original:41.20,en_plan:false,nota:''},
+  {id:'PROV-015',categoria:'PROVEEDORES',concepto:'COCA-COLA EUROPACIFIC',urgencia:'NECESARIO',importe_original:964.71,en_plan:true,nota:'Plan: €230,57 único + plan resto'},
+  {id:'PROV-016',categoria:'PROVEEDORES',concepto:'CHACACITY SL',urgencia:'NECESARIO',importe_original:1857.96,en_plan:true,nota:'Plan: €839,12 único + €1.018,84 plan'},
+  {id:'PROV-017',categoria:'PROVEEDORES',concepto:'NEGOCIANTS SLU',urgencia:'NECESARIO',importe_original:693.30,en_plan:true,nota:'Pago único €693,30'},
+  {id:'PROV-018',categoria:'PROVEEDORES',concepto:'MASSAL SELECTION S.L.',urgencia:'DILATADO',importe_original:635.44,en_plan:true,nota:'Plan de pagos'},
+  {id:'PROV-019',categoria:'PROVEEDORES',concepto:'PEIXOS J ARROM SL',urgencia:'DILATADO',importe_original:533.51,en_plan:true,nota:'Plan de pagos'},
+  {id:'PROV-020',categoria:'PROVEEDORES',concepto:'MONTSERRAT FORNERS 1894 SL',urgencia:'DILATADO',importe_original:500.00,en_plan:true,nota:'Pago único €500'},
+  {id:'PROV-021',categoria:'PROVEEDORES',concepto:'Carnia',urgencia:'DILATADO',importe_original:487.52,en_plan:true,nota:'Plan: 5 cuotas x €97,50'},
+  {id:'PROV-022',categoria:'PROVEEDORES',concepto:'LA VIGILIA LOGISTIC SLU',urgencia:'NECESARIO',importe_original:347.12,en_plan:true,nota:'Pago único €347,12'},
+  {id:'PROV-023',categoria:'PROVEEDORES',concepto:'DISTRIBUCIO PRIMERA QUALITAT SL',urgencia:'DILATADO',importe_original:219.85,en_plan:true,nota:'Pago único €219,85'},
+  {id:'PROV-024',categoria:'PROVEEDORES',concepto:'COMERCIAL ESCOLA SL',urgencia:'NECESARIO',importe_original:277.81,en_plan:true,nota:'Pago único €277,81'},
+  {id:'PROV-025',categoria:'PROVEEDORES',concepto:'GAUCHO & BOINA SL',urgencia:'DILATADO',importe_original:255.62,en_plan:true,nota:'Pago único €255,62'},
+  {id:'PROV-026',categoria:'PROVEEDORES',concepto:'Kiku S.L.U.',urgencia:'DILATADO',importe_original:184.52,en_plan:true,nota:'Pago único €184,52'},
+  {id:'PROV-027',categoria:'PROVEEDORES',concepto:'TORNADO COFFEE ROASTERS SL',urgencia:'EVITABLE',importe_original:169.28,en_plan:false,nota:'Revisar — posible disputa doble factura'},
+  {id:'PROV-028',categoria:'PROVEEDORES',concepto:'AGUAVIDA LLOPS SL',urgencia:'NECESARIO',importe_original:159.72,en_plan:true,nota:'Pago único €159,72'},
+  {id:'PROV-029',categoria:'PROVEEDORES',concepto:'IMPORTADORA EXAL DE ALIMENTOS SL',urgencia:'DILATADO',importe_original:149.93,en_plan:true,nota:'Pago único €149,93'},
+  {id:'PROV-030',categoria:'PROVEEDORES',concepto:'CALIDOSCOPI VINS SL',urgencia:'NECESARIO',importe_original:148.89,en_plan:true,nota:'Pago único €148,89'},
+  {id:'PROV-031',categoria:'PROVEEDORES',concepto:'SOULBLIM S.L. (GROUP FRUCTUS)',urgencia:'DILATADO',importe_original:141.09,en_plan:true,nota:'Pago único €141,09'},
+  {id:'PROV-032',categoria:'PROVEEDORES',concepto:'MAMMAFIORE BARCELONA SL',urgencia:'NECESARIO',importe_original:153.30,en_plan:true,nota:'Pago único €153,30'},
+  {id:'PROV-033',categoria:'PROVEEDORES',concepto:'PROMAN FRUITS SL',urgencia:'NECESARIO',importe_original:347.33,en_plan:true,nota:'Pago único €347,33 (pagó €380 el 19/05)'},
+  {id:'PROV-034',categoria:'PROVEEDORES',concepto:'WINE O\'CLOCK IMPORTACIONES S.L.',urgencia:'EVITABLE',importe_original:80.01,en_plan:false,nota:'Disputar / negociar'},
+  {id:'PROV-035',categoria:'PROVEEDORES',concepto:'ULTRAPLUS MAXIMEGA S.L.',urgencia:'DILATADO',importe_original:66.96,en_plan:true,nota:'Pago único €66,96'},
+  // ── NÓMINAS ──────────────────────────────────────────────
   {id:'NOM-001',categoria:'NOMINAS',concepto:'Nóminas adeudadas Febrero 2026',urgencia:'NECESARIO',importe_original:4957.00,en_plan:false,nota:''},
   {id:'NOM-002',categoria:'NOMINAS',concepto:'Nóminas adeudadas Marzo 2026',urgencia:'NECESARIO',importe_original:7897.00,en_plan:false,nota:''},
-  {id:'NOM-003',categoria:'NOMINAS',concepto:'Nóminas en curso Abril 2026',urgencia:'NECESARIO',importe_original:11275.00,en_plan:false,nota:''},
-  {id:'BAN-001',categoria:'BANCARIO',concepto:'Pago Ágil Santander (por cancelar)',urgencia:'NECESARIO',importe_original:7649.00,en_plan:false,nota:''},
-  {id:'BAN-002',categoria:'BANCARIO',concepto:'Tarjeta de Crédito BBVA',urgencia:'NECESARIO',importe_original:1550.00,en_plan:false,nota:''},
-  {id:'FIJ-001',categoria:'COSTOS_FIJOS',concepto:'Costos fijos adeudados Enero 2026',urgencia:'NECESARIO',importe_original:1155.50,en_plan:false,nota:''},
-  {id:'FIJ-002',categoria:'COSTOS_FIJOS',concepto:'Costos fijos adeudados Febrero 2026',urgencia:'NECESARIO',importe_original:2237.00,en_plan:false,nota:''},
-  {id:'FIJ-003',categoria:'COSTOS_FIJOS',concepto:'Costos fijos adeudados Marzo 2026',urgencia:'NECESARIO',importe_original:10591.00,en_plan:false,nota:''},
+  {id:'NOM-003',categoria:'NOMINAS',concepto:'Nóminas adeudadas Abril 2026',urgencia:'NECESARIO',importe_original:8705.00,en_plan:false,nota:''},
+  {id:'NOM-004',categoria:'NOMINAS',concepto:'Nóminas en curso Mayo 2026',urgencia:'NECESARIO',importe_original:8263.00,en_plan:false,nota:'En proceso'},
+  // ── BANCARIO ─────────────────────────────────────────────
+  {id:'BAN-001',categoria:'BANCARIO',concepto:'Pago Ágil Santander (por cancelar)',urgencia:'NECESARIO',importe_original:7649.00,en_plan:false,nota:'AL PAGARLO SE RECUPERA LA LÍNEA — prioridad alta'},
+  {id:'BAN-002',categoria:'BANCARIO',concepto:'Tarjeta de Crédito BBVA',urgencia:'NECESARIO',importe_original:1700.00,en_plan:false,nota:'Financiación'},
+  // ── COSTOS FIJOS ─────────────────────────────────────────
+  {id:'FIJ-001',categoria:'COSTOS_FIJOS',concepto:'Costos fijos adeudados Enero 2026',urgencia:'NECESARIO',importe_original:1161.00,en_plan:true,nota:'Plan posible: €95 único + 12x €88,83 (Naturgy)'},
+  {id:'FIJ-002',categoria:'COSTOS_FIJOS',concepto:'Costos fijos adeudados Febrero 2026',urgencia:'NECESARIO',importe_original:2179.00,en_plan:true,nota:'Plan posible: €964 único + 12x €101,25 (Naturgy)'},
+  {id:'FIJ-003',categoria:'COSTOS_FIJOS',concepto:'Costos fijos adeudados Marzo 2026',urgencia:'NECESARIO',importe_original:4550.00,en_plan:true,nota:'Plan: €3.533 único + 12x €84,75'},
+  {id:'FIJ-004',categoria:'COSTOS_FIJOS',concepto:'Costos fijos adeudados Abril 2026',urgencia:'NECESARIO',importe_original:4228.00,en_plan:true,nota:'Plan posible: €3.330 único + 12x €74,83 (Tasa anual Ayunt.)'},
+  {id:'FIJ-005',categoria:'COSTOS_FIJOS',concepto:'Costos fijos adeudados Mayo 2026',urgencia:'NECESARIO',importe_original:9939.00,en_plan:false,nota:''},
+  // ── PERSONAL ─────────────────────────────────────────────
   {id:'PER-001',categoria:'PERSONAL',concepto:'Propinas totales adeudadas',urgencia:'NECESARIO',importe_original:1544.00,en_plan:false,nota:''},
-  {id:'PER-002',categoria:'PERSONAL',concepto:'Comisiones Mateo (Brunch)',urgencia:'NECESARIO',importe_original:300.00,en_plan:false,nota:''},
-  {id:'PER-003',categoria:'PERSONAL',concepto:'Comisiones Indra',urgencia:'NECESARIO',importe_original:145.00,en_plan:false,nota:''},
-  {id:'PER-004',categoria:'PERSONAL',concepto:'EZSA',urgencia:'NECESARIO',importe_original:585.00,en_plan:false,nota:''},
-  {id:'PER-005',categoria:'PERSONAL',concepto:'Limpieza de Campanas',urgencia:'NECESARIO',importe_original:650.00,en_plan:false,nota:''},
-  {id:'PER-006',categoria:'PERSONAL',concepto:'José Mantenimiento',urgencia:'NECESARIO',importe_original:278.00,en_plan:false,nota:''},
-  {id:'PER-007',categoria:'PERSONAL',concepto:'Katty Limpieza',urgencia:'NECESARIO',importe_original:465.00,en_plan:false,nota:''},
-  {id:'PER-008',categoria:'PERSONAL',concepto:'Saldo Pablo (micro-préstamo)',urgencia:'NECESARIO',importe_original:1000.00,en_plan:false,nota:''},
-  {id:'FIS-001',categoria:'FISCAL',concepto:'Impuesto anual Ajuntament (terraza)',urgencia:'DILATADO',importe_original:898.00,en_plan:false,nota:''},
-  {id:'OTR-001',categoria:'OTROS',concepto:'Ligoña Abogados',urgencia:'DILATADO',importe_original:1000.00,en_plan:false,nota:''},
-  {id:'OTR-002',categoria:'OTROS',concepto:'Peter Solvit',urgencia:'DILATADO',importe_original:5867.00,en_plan:false,nota:''},
+  {id:'PER-002',categoria:'PERSONAL',concepto:'EZSA',urgencia:'NECESARIO',importe_original:585.00,en_plan:false,nota:''},
+  {id:'PER-003',categoria:'PERSONAL',concepto:'Limpieza de Campanas',urgencia:'NECESARIO',importe_original:650.00,en_plan:false,nota:''},
+  {id:'PER-004',categoria:'PERSONAL',concepto:'José Mantenimiento',urgencia:'NECESARIO',importe_original:278.00,en_plan:false,nota:''},
+  {id:'PER-005',categoria:'PERSONAL',concepto:'Katty Limpieza',urgencia:'NECESARIO',importe_original:590.00,en_plan:false,nota:''},
+  {id:'PER-006',categoria:'PERSONAL',concepto:'Saldo Pablo (micro-préstamo)',urgencia:'NECESARIO',importe_original:4000.00,en_plan:false,nota:'A pagar con desembolso agosto'},
+  // ── OTROS ────────────────────────────────────────────────
+  {id:'OTR-001',categoria:'OTROS',concepto:'Ligoña Abogados',urgencia:'DILATADO',importe_original:1000.00,en_plan:true,nota:'Plan posible: 12 cuotas x €83,33'},
+  {id:'OTR-002',categoria:'OTROS',concepto:'Peter Solvit',urgencia:'DILATADO',importe_original:5867.00,en_plan:true,nota:'A pagar con desembolso de agosto'},
   {id:'OTR-003',categoria:'OTROS',concepto:'Scalapay',urgencia:'NECESARIO',importe_original:262.00,en_plan:false,nota:''},
   {id:'OTR-004',categoria:'OTROS',concepto:'Glovo App',urgencia:'NECESARIO',importe_original:183.00,en_plan:false,nota:''},
-  {id:'OTR-005',categoria:'OTROS',concepto:'LoomisPlay',urgencia:'NECESARIO',importe_original:410.00,en_plan:false,nota:''},
-  {id:'OTR-006',categoria:'OTROS',concepto:'AXA (posible reclamo)',urgencia:'DILATADO',importe_original:605.00,en_plan:false,nota:'Posible disputa con aseguradora'},
+  {id:'OTR-005',categoria:'OTROS',concepto:'LoomisP ay (fuera de calendario)',urgencia:'NECESARIO',importe_original:166.80,en_plan:false,nota:''},
+  {id:'OTR-006',categoria:'OTROS',concepto:'AXA (posible reclamo a pagar)',urgencia:'EVITABLE',importe_original:605.00,en_plan:false,nota:'Posible disputa con aseguradora'},
+  {id:'OTR-007',categoria:'OTROS',concepto:'Pago Notaría (trámite)',urgencia:'NECESARIO',importe_original:800.00,en_plan:false,nota:''},
 ];
 
 // ── VENTAS SEED — datos reales Ene–May 2026 desde Google Sheet ─────
@@ -3451,9 +3456,28 @@ const URG_LABELS = { NECESARIO:'Necesario', DILATADO:'Dilatado', EVITABLE:'Evita
 const URG_CLS    = { NECESARIO:'urg-nec', DILATADO:'urg-dil', EVITABLE:'urg-evi' };
 
 async function seedDeuda() {
-  const existing = await dbGetAll('deuda');
-  if (existing.length > 0) return; // ya sembrado
-  for (const d of DEUDA_SEED) await dbPut('deuda', { ...d, pagado:0 });
+  const storedVer = parseInt(localStorage.getItem('deuda_seed_ver')||'0');
+  if (storedVer >= DEUDA_SEED_VERSION) return; // ya en versión actual
+  // Upsert seed items — preserva pagado_real vía deuda_pagos (no en este store)
+  for (const d of DEUDA_SEED) {
+    const ex = await dbGet('deuda', d.id);
+    // Si ya existe, actualiza sólo los campos del seed (no toca pagado manual)
+    if (ex) {
+      await dbPut('deuda', { ...ex, ...d });
+    } else {
+      await dbPut('deuda', { ...d, pagado:0 });
+    }
+  }
+  // Eliminar items del seed anterior que ya no existen en el nuevo
+  const allExisting = await dbGetAll('deuda');
+  const seedIds = new Set(DEUDA_SEED.map(d => d.id));
+  for (const ex of allExisting) {
+    if (ex.id.startsWith('PROV-') || ex.id.startsWith('NOM-') || ex.id.startsWith('BAN-') ||
+        ex.id.startsWith('FIJ-') || ex.id.startsWith('PER-') || ex.id.startsWith('FIS-') || ex.id.startsWith('OTR-')) {
+      if (!seedIds.has(ex.id)) await dbDelete('deuda', ex.id);
+    }
+  }
+  localStorage.setItem('deuda_seed_ver', String(DEUDA_SEED_VERSION));
 }
 
 async function refreshDeuda() {
