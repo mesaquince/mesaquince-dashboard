@@ -2859,62 +2859,123 @@ async function runPDFExtract(pdfData) {
 }
 
 // ── PARSER OCR ────────────────────────────────────────
+// Palabras genéricas a ignorar en matching de proveedor
+const PROV_STOP_WORDS = new Set([
+  'BARCELONA','MADRID','VALENCIA','SEVILLA','BILBAO','ZARAGOZA','SPAIN','ESPAÑA',
+  'ESPANA','CATALUÑA','CATALUNA','CORNELLA','LLOBREGAT','HOSPITALET',
+  'SL','SLU','SA','SAU','SLL','SLNE','SCP','CB','AIE',
+  'COMPRAS','DISTRIBUCIONES','DISTRIBUCIO','ALIMENTARIA','IMPORTADORA',
+  'SOLUTIONS','FINANCE','LOGISTIC','SELECTION','SEAMLESS','COFFEE','ROASTERS',
+  'WATER','FRUITS','SELECTES','MANUFACTURES','MANUFACTURAS','CALIDAD','QUALITAT',
+  'GRUPO','GROUP','COMERCIAL','EMPRESA','EMPRESARIAL',
+]);
+
 function parseOCRText(text) {
   const lines = text.split(/\n/).map(l=>l.trim()).filter(Boolean);
 
-  // Total — buscar el importe más alto (suele ser el total)
-  let amounts = [];
-  const amtRegex = /(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})/g;
-  let m;
-  while ((m = amtRegex.exec(text)) !== null) {
-    const val = parseFloat(m[1].replace(/\./g,'').replace(',','.'));
-    if (val > 0 && val < 999999) amounts.push(val);
+  // ── 1. TOTAL — buscar primero patrones semánticos (NETO, TOTAL, A PAGAR)
+  let foundTotal = null;
+
+  // Patrones explícitos de línea total en facturas/albaranes españoles
+  const totalPatterns = [
+    /NETO\s*[|:€$]?\s*(\d{1,5}[.,]\d{2})/i,
+    /TOTAL\s+NETO\s*[|:€$]?\s*(\d{1,5}[.,]\d{2})/i,
+    /TOTAL\s+(?:FACTURA|ALBAR[AÁ]N|IVA\s+INCLUIDO|A\s+PAGAR)\s*[|:€$]?\s*(\d{1,5}[.,]\d{2})/i,
+    /IMPORTE\s+TOTAL\s*[|:€$]?\s*(\d{1,5}[.,]\d{2})/i,
+    /A\s+PAGAR\s*[|:€$]?\s*(\d{1,5}[.,]\d{2})/i,
+    /TOTAL\s*[|:€$]\s*(\d{1,5}[.,]\d{2})/i,
+  ];
+  for (const pat of totalPatterns) {
+    const m = pat.exec(text);
+    if (m) {
+      const v = parseFloat(m[1].replace(/\./g,'').replace(',','.'));
+      if (v > 0 && v < 50000) { foundTotal = v; break; }
+    }
   }
-  amounts = [...new Set(amounts)].sort((a,b)=>b-a);
-  if (amounts.length > 0 && !qEl('f-total').value) {
-    qEl('f-total').value = amounts[0].toFixed(2);
+
+  // Fallback: tomar todos los importes razonables (2-5 dígitos + 2 decimales)
+  // Excluye números tipo CIF (> 6 dígitos antes del decimal) o teléfonos
+  if (!foundTotal) {
+    let amounts = [];
+    const amtRegex = /(?<!\d)(\d{1,4}[.,]\d{2})(?!\d)/g;
+    let m;
+    while ((m = amtRegex.exec(text)) !== null) {
+      const val = parseFloat(m[1].replace(/\./g,'').replace(',','.'));
+      if (val >= 1 && val < 20000) amounts.push(val);
+    }
+    amounts = [...new Set(amounts)].sort((a,b)=>b-a);
+    if (amounts.length > 0) foundTotal = amounts[0];
+  }
+
+  if (foundTotal !== null && !qEl('f-total').value) {
+    qEl('f-total').value = foundTotal.toFixed(2);
     calcBase();
   }
 
-  // IVA
-  const ivaM = /IVA\s+(\d{1,2})\s*%/i.exec(text) || /(\d{1,2})\s*%\s*IVA/i.exec(text);
+  // ── 2. IVA
+  const ivaM = /IVA\s+(\d{1,2})\s*%/i.exec(text) || /(\d{1,2})\s*%\s*IVA/i.exec(text)
+             || /%\s*IVA[^%]*?(\d{1,2})/i.exec(text);
   if (ivaM) {
     const pct = parseInt(ivaM[1]);
-    if ([4,10,21].includes(pct)) qEl('f-iva-pct').value = pct;
-    calcBase();
+    if ([4,10,21].includes(pct)) { qEl('f-iva-pct').value = pct; calcBase(); }
   }
 
-  // Fecha
-  const fechaM = /(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})/.exec(text);
-  if (fechaM && !qEl('f-fecha-doc').value) {
+  // ── 3. Fecha — priorizar campo etiquetado "FECHA"
+  const fechaLabeled = /(?:FECHA|DATE)[:\s]*(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/i.exec(text);
+  const fechaPlain   = /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/.exec(text);
+  const fechaM       = fechaLabeled || fechaPlain;
+  if (fechaM) {
     const [,d,mo,y] = fechaM;
     const year = y.length===2 ? '20'+y : y;
-    qEl('f-fecha-doc').value = `${year}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    if (parseInt(year) >= 2020 && parseInt(year) <= 2030) {
+      qEl('f-fecha-doc').value = `${year}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    }
   }
 
-  // Número de documento
-  const numM = /(?:factura|albaran|albarán|fra|alb)[\.:\s#n°nº\s]*([A-Z0-9\/\-]{3,20})/i.exec(text);
+  // ── 4. Número de documento — solo si hay etiqueta explícita, con word boundary
+  const numM = /(?:N[°º]?\s*(?:ALBAR[AÁ]N|FACTURA)|FACTURA\s*N[°º]?|ALBAR[AÁ]N\s*N[°º]?)\s*[:\-]?\s*([A-Z0-9][A-Z0-9\/\-]{2,19})/i.exec(text);
   if (numM && !qEl('f-num').value) qEl('f-num').value = numM[1].trim();
 
-  // Proveedor: buscar en las primeras 4 líneas, match con conocidos o usar primera línea
-  const topLines = lines.slice(0,6).join(' ').toUpperCase();
+  // ── 5. Proveedor — solo palabras únicas y no genéricas
+  // Buscar en todo el texto (no solo primeras líneas) para mayor cobertura
+  const textUpper = text.toUpperCase();
   let foundProv = '';
+
   for (const p of getKnownProviders()) {
-    const words = p.split(' ').filter(w=>w.length>3);
-    if (words.some(w => topLines.includes(w.toUpperCase()))) { foundProv = p; break; }
+    // Extraer solo palabras significativas del nombre del proveedor
+    const sigWords = p.toUpperCase().split(/\s+/)
+      .filter(w => w.length >= 5 && !PROV_STOP_WORDS.has(w));
+    if (sigWords.length === 0) continue;
+    // Requiere que AL MENOS la primera palabra significativa aparezca como palabra completa
+    const mainWord = sigWords[0];
+    const wordRe = new RegExp('\\b' + mainWord + '\\b');
+    if (wordRe.test(textUpper)) { foundProv = p; break; }
   }
-  if (!foundProv && lines[0] && lines[0].length > 3) foundProv = lines[0];
+
+  // Fallback: primera línea del documento (zona de cabecera del emisor)
+  if (!foundProv) {
+    // Buscar el nombre en zona de cabecera (antes de la tabla de productos)
+    const headerLines = lines.slice(0, 4);
+    for (const l of headerLines) {
+      if (l.length > 4 && !/^\d/.test(l) && !/^(ALBAR|FACTUR|N[°º]|C\.I\.F|CIF|NIF|FECHA)/i.test(l)) {
+        foundProv = l; break;
+      }
+    }
+  }
+
   if (foundProv && !qEl('f-proveedor').value) {
     qEl('f-proveedor').value = foundProv;
-    autoFillProveedorFull(foundProv); // auto-fill cat/iva/pago si es proveedor conocido
+    autoFillProveedorFull(foundProv);
   }
 
-  // Tipo: detectar albarán vs factura
+  // ── 6. Tipo: detectar albarán vs factura
   if (/albar[aá]n/i.test(text)) qEl('f-tipo').value = 'albaran';
 
-  // Forma de pago
-  if (/cr[eé]dito|plazo|\d+\s*d[ií]as/i.test(text)) qEl('f-forma-pago').value = 'credito';
-  else if (/transferencia|transf/i.test(text))        qEl('f-forma-pago').value = 'transferencia';
+  // ── 7. Forma de pago
+  if (/pendiente|cr[eé]dito|plazo|\d+\s*d[ií]as/i.test(text)) qEl('f-forma-pago').value = 'credito';
+  else if (/transferencia|transf/i.test(text))                  qEl('f-forma-pago').value = 'transferencia';
+
+  toggleVencimiento();
 }
 
 // ── SAVE FACTURA ──────────────────────────────────────
@@ -3276,6 +3337,7 @@ const DEUDA_SEED = [
   {id:'PROV-033',categoria:'PROVEEDORES',concepto:'PROMAN FRUITS SL',urgencia:'NECESARIO',importe_original:347.33,en_plan:true,nota:'Pago único €347,33 (pagó €380 el 19/05)'},
   {id:'PROV-034',categoria:'PROVEEDORES',concepto:'WINE O\'CLOCK IMPORTACIONES S.L.',urgencia:'EVITABLE',importe_original:80.01,en_plan:false,nota:'Disputar / negociar'},
   {id:'PROV-035',categoria:'PROVEEDORES',concepto:'ULTRAPLUS MAXIMEGA S.L.',urgencia:'DILATADO',importe_original:66.96,en_plan:true,nota:'Pago único €66,96'},
+  {id:'PROV-036',categoria:'PROVEEDORES',concepto:'Entrecortes (Nueve Reinas)',urgencia:'NECESARIO',importe_original:0,en_plan:false,nota:'Proveedor carnes premium — albaranes regulares'},
   // ── NÓMINAS ──────────────────────────────────────────────
   {id:'NOM-001',categoria:'NOMINAS',concepto:'Nóminas adeudadas Febrero 2026',urgencia:'NECESARIO',importe_original:4957.00,en_plan:false,nota:''},
   {id:'NOM-002',categoria:'NOMINAS',concepto:'Nóminas adeudadas Marzo 2026',urgencia:'NECESARIO',importe_original:7897.00,en_plan:false,nota:''},
