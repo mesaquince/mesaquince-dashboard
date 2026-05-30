@@ -760,6 +760,15 @@ input,select,textarea{font-family:inherit;}
 
     <!-- SUB-TAB: PLATOS -->
     <div class="menu-subpanel" id="msub-platos">
+      <!-- BARRA CONFIG -->
+      <div style="background:#fffbeb;border:1px solid #fed7aa;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="font-size:11px;color:var(--g600);">
+          ⚙️ Coste de servicio aplicado: <strong style="color:var(--amber-d);font-size:13px;" id="cs-pct-lbl">5%</strong>
+          <span style="color:var(--g400);">— prorrateo operativo (pan, sal, hielo, merma cocina, aceite fritura). El FC% mostrado incluye este ajuste.</span>
+        </div>
+        <button class="btn-sec" style="padding:5px 12px;font-size:11px;" onclick="editCostServicio()">Editar %</button>
+      </div>
+
       <div class="card">
         <div class="section-head">
           <div>
@@ -809,7 +818,7 @@ input,select,textarea{font-family:inherit;}
           </table>
         </div>
         <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--g100);font-size:11px;color:var(--g400);">
-          💡 <strong>Sugerencia PVP</strong> = costo / <span id="m-fc-max-lbl">30</span>% (techo objetivo). Clic en el plato para ver/editar receta.
+          💡 <strong>Sugerencia PVP</strong> = (costo MP + servicio) / <span id="m-fc-max-lbl">30</span>% (techo objetivo). <strong>Costo</strong> mostrado = MP × (1 + <span id="m-cs-pct">5</span>% servicio). Clic en el plato para ver/editar receta.
         </div>
       </div>
     </div>
@@ -4022,6 +4031,8 @@ let _editPlatoRecipe = []; // estado del editor de receta en panel
 // Configuración Food Cost target (editable desde UI futura)
 const FC_TARGET_MAX = 30; // techo crítico
 const FC_TARGET_OK  = 28; // ideal
+const COST_SERVICIO_PCT_DEFAULT = 5; // % prorrateo operativo (pan, sal, hielo, merma cocina, aceite frit, servilletas)
+let _costServicioPct = COST_SERVICIO_PCT_DEFAULT;
 
 const CAT_COLORS_MENU = {
   'Para Empezar': '#f59e0b',
@@ -4087,12 +4098,16 @@ function calcRecipeCost(recipe) {
   return { cost, breakdown };
 }
 
-// Devuelve el costo del plato: si tiene receta → calculado dinámico, sino → costo_total guardado
-function dishCost(dish) {
+// Devuelve el costo MP del plato: si tiene receta → calculado dinámico, sino → costo_total guardado
+function dishCostMP(dish) {
   if (dish.recipe && dish.recipe.length) {
     return calcRecipeCost(dish.recipe).cost;
   }
   return Number(dish.costo_total || 0);
+}
+// Costo efectivo = MP × (1 + coste servicio %)
+function dishCost(dish) {
+  return dishCostMP(dish) * (1 + _costServicioPct / 100);
 }
 
 function fmtPct(n) {
@@ -4109,10 +4124,30 @@ function switchMenuSubtab(name) {
   if (name === 'bcg')          { if (bcgChartInst) bcgChartInst.resize(); }
 }
 
+async function editCostServicio() {
+  const val = prompt(
+    `Coste de servicio (prorrateo operativo)\n\n` +
+    `Actual: ${_costServicioPct}%\n\n` +
+    `Sugerencias: 2-3% casual · 4-6% bistró/brasa · 7-10% fine dining\n\n` +
+    `Nuevo % (0-20):`,
+    _costServicioPct
+  );
+  if (val === null) return;
+  const n = Number(val);
+  if (isNaN(n) || n < 0 || n > 20) { toast('Valor inválido (0-20%)', 'err'); return; }
+  _costServicioPct = n;
+  await dbSetConfig('cost_servicio_pct', n);
+  toast(`Coste de servicio: ${n}% ✓`);
+  await refreshMenu();
+}
+
 async function refreshMenu() {
   // refrescar cache de ingredientes (precio puede haber cambiado por una factura)
   _ingredientesCache = await dbGetAll('ingredientes');
+  _costServicioPct = await dbGetConfig('cost_servicio_pct', COST_SERVICIO_PCT_DEFAULT);
   setEl('m-fc-max-lbl', FC_TARGET_MAX);
+  setEl('cs-pct-lbl', _costServicioPct + '%');
+  setEl('m-cs-pct',   _costServicioPct);
 
   const all    = await dbGetAll('escandallos');
   const activos = all.filter(d => d.activo !== false);
@@ -4124,7 +4159,8 @@ async function refreshMenu() {
   }
 
   // costo recalculado para cada plato (dinámico si tiene receta)
-  const costos = activos.map(d => dishCost(d));
+  const costosMP  = activos.map(d => dishCostMP(d));
+  const costos    = costosMP.map(c => c * (1 + _costServicioPct / 100));
 
   const totalUnits = activos.reduce((s,d) => s + (d.ventas_mes||0), 0);
   const pops       = activos.map(d => totalUnits > 0 ? ((d.ventas_mes||0)/totalUnits*100) : 0);
@@ -4134,6 +4170,7 @@ async function refreshMenu() {
 
   menuDataEnrich = activos.map((d, i) => {
     const costo = costos[i];
+    const costo_mp = costosMP[i];
     const pvp = d.precio_venta || 0;
     const fc_pct = costo && pvp ? (costo / pvp * 100) : null;
     const pvp_sugerido = costo ? costo / (FC_TARGET_MAX / 100) : null;
@@ -4141,6 +4178,7 @@ async function refreshMenu() {
     return {
       ...d,
       costo_calc: costo,
+      costo_mp,
       tiene_receta: !!(d.recipe && d.recipe.length),
       fc_pct,
       margen_eur: margenes[i],
@@ -4317,11 +4355,15 @@ function renderMenuTable(dishes) {
         sugCell = `<span style="color:var(--green);font-size:11px;font-weight:600;">✓ ok</span>`;
       }
     }
+    const costTooltip = `MP €${d.costo_mp.toFixed(2)} + servicio ${_costServicioPct}% (€${(d.costo_calc - d.costo_mp).toFixed(2)}) = €${d.costo_calc.toFixed(2)}`;
     return `<tr>
       <td style="font-weight:600;">${d.nombre}${recipeBadge}</td>
       <td><span style="background:${catC}22;color:${catC};border-radius:6px;padding:2px 7px;font-size:11px;font-weight:600;">${d.categoria}</span></td>
       <td class="r">€${(d.precio_venta||0).toFixed(2)}</td>
-      <td class="r">€${d.costo_calc.toFixed(2)}</td>
+      <td class="r" title="${costTooltip}" style="cursor:help;">
+        €${d.costo_calc.toFixed(2)}
+        <div style="font-size:9px;color:var(--g400);">MP €${d.costo_mp.toFixed(2)}</div>
+      </td>
       <td class="r" style="${fcColor}">
         ${fc}%
         <div class="fc-bar-wrap"><div class="fc-bar-fill ${fcCls}" style="width:${fcBar}%"></div></div>
@@ -4475,19 +4517,26 @@ function updateRecipePreview() {
 }
 
 function updateFCPreview() {
-  const p = parseFloat(document.getElementById('pl-precio')?.value) || 0;
-  const c = parseFloat(document.getElementById('pl-costo')?.value)  || 0;
-  const el = document.getElementById('pl-fc-preview');
+  const p   = parseFloat(document.getElementById('pl-precio')?.value) || 0;
+  const cMP = parseFloat(document.getElementById('pl-costo')?.value)  || 0;
+  const el  = document.getElementById('pl-fc-preview');
   if (!el) return;
-  if (!p && !c) { el.innerHTML = '<span style="color:var(--g400);font-size:11px;">Completá precio y costo para ver el food cost</span>'; return; }
-  if (!p) { el.innerHTML = `<span style="color:var(--g600);">Costo €${c.toFixed(2)} · falta PVP</span>`; return; }
-  if (!c) { el.innerHTML = `<span style="color:var(--g600);">PVP €${p.toFixed(2)} · falta costo</span>`; return; }
-  const fc = (c/p*100);
-  const m  = (p-c).toFixed(2);
+  if (!p && !cMP) { el.innerHTML = '<span style="color:var(--g400);font-size:11px;">Completá precio y costo para ver el food cost</span>'; return; }
+  const cExtra = cMP * (_costServicioPct/100);
+  const cTot   = cMP + cExtra;
+  if (!p) { el.innerHTML = `<span style="color:var(--g600);">Costo total €${cTot.toFixed(2)} (MP €${cMP.toFixed(2)} + servicio ${_costServicioPct}% €${cExtra.toFixed(2)}) · falta PVP</span>`; return; }
+  if (!cMP) { el.innerHTML = `<span style="color:var(--g600);">PVP €${p.toFixed(2)} · falta costo</span>`; return; }
+  const fc = (cTot/p*100);
+  const m  = (p-cTot).toFixed(2);
   const col= fc>FC_TARGET_MAX?'var(--red)':fc<=FC_TARGET_OK?'var(--green)':'var(--amber-d)';
-  const pvpSug = (c / (FC_TARGET_MAX/100)).toFixed(2);
+  const pvpSug = (cTot / (FC_TARGET_MAX/100)).toFixed(2);
   const sug = fc > FC_TARGET_MAX ? `<div style="font-size:11px;color:var(--red);margin-top:4px;">⚠ Excede techo ${FC_TARGET_MAX}% — PVP sugerido: <strong>€${pvpSug}</strong></div>` : '';
-  el.innerHTML = `<span style="font-weight:800;color:${col};">FC: ${fc.toFixed(1)}%</span> &nbsp;·&nbsp; Margen: <strong>€${m}</strong>${sug}`;
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--g500);margin-bottom:3px;">
+      <span>MP €${cMP.toFixed(2)} + servicio (${_costServicioPct}%) €${cExtra.toFixed(2)}</span>
+      <span>= total <strong style="color:var(--g900);">€${cTot.toFixed(2)}</strong></span>
+    </div>
+    <span style="font-weight:800;color:${col};">FC: ${fc.toFixed(1)}%</span> &nbsp;·&nbsp; Margen: <strong>€${m}</strong>${sug}`;
 }
 
 async function submitPlato() {
@@ -4917,6 +4966,7 @@ async function init() {
 
     step('Cargando ingredientes…');
     await seedIngredientes();
+    _costServicioPct = await dbGetConfig('cost_servicio_pct', COST_SERVICIO_PCT_DEFAULT);
 
     step('Renderizando…');
     // Render inicial
