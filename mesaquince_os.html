@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <style>
 /* ═══════════════════════════════════════
-   DESIGN SYSTEM — MESAQUINCE OS v1.0
+   DESIGN SYSTEM — MESAQUINCE OS v2.1
 ═══════════════════════════════════════ */
 :root {
   --amber:    #f59e0b;
@@ -22,171 +22,252 @@
   --blue:     #3b82f6;
   --blue-l:   #dbeafe;
   --purple:   #8b5cf6;
-  --g50:      #f9fafb;
-  --g100:     #f3f4f6;
-  --g200:     #e5e7eb;
-  --g300:     #d1d5db;
-  --g400:     #9ca3af;
-  --g600:     #6b7280;
-  --g700:     #374151;
-  --g800:     #1f2937;
-  --g900:     #111827;
+  /* Warm gray palette */
+  --g50:      #f9f8f6;
+  --g100:     #f2f1ef;
+  --g200:     #e8e6e2;
+  --g300:     #d3d0cb;
+  --g400:     #9e9890;
+  --g600:     #6b6560;
+  --g700:     #3d3935;
+  --g800:     #211e1a;
+  --g900:     #131110;
   --white:    #ffffff;
-  --nav-h:    58px;
-  --tab-h:    46px;
-  --radius:   14px;
-  --shadow:   0 1px 4px rgba(0,0,0,0.06);
+  --nav-h:    60px;
+  --tab-h:    52px;
+  --radius:   16px;
+  --radius-sm: 10px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow:    0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06);
+  --shadow-md: 0 2px 6px rgba(0,0,0,0.05), 0 8px 28px rgba(0,0,0,0.09);
+  --shadow-lg: 0 4px 12px rgba(0,0,0,0.07), 0 16px 48px rgba(0,0,0,0.12);
 }
 
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{font-family:'Inter',system-ui,sans-serif;background:var(--g50);color:var(--g900);min-height:100vh;overscroll-behavior:none;}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--g100);color:var(--g900);min-height:100vh;overscroll-behavior:none;}
 button{font-family:inherit;cursor:pointer;}
 input,select,textarea{font-family:inherit;}
+
+/* Smooth inter-element selection */
+::selection{background:rgba(245,158,11,0.2);color:var(--g900);}
 
 /* ── TOPBAR ── */
 #topbar{
   position:fixed;top:0;left:0;right:0;height:var(--nav-h);
-  background:var(--g900);z-index:200;
+  background:linear-gradient(135deg, #1a1713 0%, #0f0d0b 100%);
+  z-index:200;
   display:flex;align-items:center;justify-content:space-between;
-  padding:0 20px;border-bottom:1px solid rgba(255,255,255,0.06);
+  padding:0 24px;
+  border-bottom:1px solid rgba(245,158,11,0.12);
+  box-shadow:0 2px 24px rgba(0,0,0,0.35);
 }
-.topbar-brand{display:flex;align-items:center;gap:10px;}
-.topbar-logo{font-size:17px;font-weight:900;color:#fff;letter-spacing:-0.03em;}
-.topbar-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;
-  background:rgba(245,158,11,0.18);color:var(--amber);letter-spacing:0.06em;}
+.topbar-brand{display:flex;align-items:center;gap:12px;}
+.topbar-logo{font-size:17px;font-weight:900;color:#fff;letter-spacing:-0.04em;
+  display:flex;align-items:center;gap:9px;}
+.topbar-logo-icon{width:28px;height:28px;background:linear-gradient(135deg,var(--amber),var(--amber-d));
+  border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-size:14px;flex-shrink:0;box-shadow:0 2px 8px rgba(245,158,11,0.4);}
+.topbar-badge{font-size:9px;font-weight:800;padding:3px 8px;border-radius:99px;
+  background:rgba(245,158,11,0.15);color:var(--amber);letter-spacing:0.1em;
+  text-transform:uppercase;border:1px solid rgba(245,158,11,0.2);}
 .topbar-right{display:flex;align-items:center;gap:10px;}
-.topbar-sync{font-size:11px;color:var(--g400);}
-#btn-gscript{font-size:11px;padding:5px 11px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);
-  background:rgba(255,255,255,0.06);color:var(--g400);transition:all 0.15s;}
-#btn-gscript.connected{border-color:rgba(16,185,129,0.4);color:var(--green);}
-#btn-gscript:hover{background:rgba(255,255,255,0.1);color:#fff;}
+.topbar-sync{font-size:11px;color:var(--g400);letter-spacing:0.01em;display:flex;align-items:center;gap:5px;}
+.topbar-sync::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--g600);flex-shrink:0;}
+.topbar-sync.live::before{background:var(--green);box-shadow:0 0 6px rgba(16,185,129,0.6);}
+#btn-gscript{font-size:11px;padding:6px 13px;border-radius:8px;
+  border:1px solid rgba(255,255,255,0.1);
+  background:rgba(255,255,255,0.04);color:var(--g400);
+  transition:all 0.15s;letter-spacing:0.01em;display:flex;align-items:center;gap:5px;}
+#btn-gscript.connected{border-color:rgba(16,185,129,0.3);color:var(--green);background:rgba(16,185,129,0.06);}
+#btn-gscript:hover{background:rgba(255,255,255,0.09);color:#fff;border-color:rgba(255,255,255,0.18);}
 
 /* ── TAB NAV ── */
 #tabnav{
   position:fixed;top:var(--nav-h);left:0;right:0;height:var(--tab-h);
   background:var(--white);border-bottom:1px solid var(--g200);
   z-index:190;display:flex;overflow-x:auto;scrollbar-width:none;
+  padding:0 16px;gap:2px;align-items:center;
+  box-shadow:0 1px 0 var(--g200), 0 4px 12px rgba(0,0,0,0.04);
 }
 #tabnav::-webkit-scrollbar{display:none;}
 .tab-btn{
-  flex-shrink:0;padding:0 16px;height:var(--tab-h);
+  flex-shrink:0;padding:0 13px;height:36px;
   border:none;background:none;font-size:12px;font-weight:600;
   color:var(--g400);white-space:nowrap;position:relative;
-  transition:color 0.15s;
+  transition:all 0.15s;border-radius:9px;
+  display:flex;align-items:center;gap:5px;letter-spacing:0.01em;
 }
-.tab-btn:hover{color:var(--g700);}
-.tab-btn.active{color:var(--g900);}
+.tab-btn .tab-emoji{font-size:13px;opacity:0.75;transition:opacity 0.15s;}
+.tab-btn:hover{color:var(--g700);background:var(--g100);}
+.tab-btn:hover .tab-emoji{opacity:1;}
+.tab-btn.active{
+  color:var(--g900);background:var(--amber-ll);
+  font-weight:700;
+}
+.tab-btn.active .tab-emoji{opacity:1;}
 .tab-btn.active::after{
-  content:'';position:absolute;bottom:0;left:12px;right:12px;
-  height:2px;background:var(--amber);border-radius:99px;
+  content:'';position:absolute;bottom:-8px;left:8px;right:8px;
+  height:2.5px;background:linear-gradient(90deg,var(--amber),var(--amber-d));
+  border-radius:99px;
 }
 
 /* ── CONTENT AREA ── */
-#content{margin-top:calc(var(--nav-h) + var(--tab-h));padding:20px;max-width:1400px;margin-left:auto;margin-right:auto;}
-.tab-panel{display:none;}
+#content{margin-top:calc(var(--nav-h) + var(--tab-h));padding:24px;max-width:1400px;margin-left:auto;margin-right:auto;}
+.tab-panel{display:none;animation:fadeIn 0.22s cubic-bezier(0.4,0,0.2,1);}
 .tab-panel.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
 
 /* ── CARDS ── */
-.card{background:var(--white);border-radius:var(--radius);padding:20px;
-  border:1px solid var(--g200);box-shadow:var(--shadow);}
-.card-title{font-size:14px;font-weight:700;color:var(--g900);margin-bottom:14px;}
-.card-sub{font-size:12px;color:var(--g400);margin-top:2px;}
+.card{background:var(--white);border-radius:var(--radius);padding:22px;
+  border:1px solid var(--g200);box-shadow:var(--shadow);
+  transition:box-shadow 0.2s;}
+.card:hover{box-shadow:var(--shadow-md);}
+.card-title{font-size:14px;font-weight:800;color:var(--g900);margin-bottom:14px;
+  display:flex;align-items:center;gap:7px;letter-spacing:-0.01em;}
+.card-sub{font-size:11.5px;color:var(--g400);margin-top:2px;}
 
 /* ── GRIDS ── */
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
-.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
-.g21{display:grid;grid-template-columns:2fr 1fr;gap:14px;}
-.g12{display:grid;grid-template-columns:1fr 2fr;gap:14px;}
-.g31{display:grid;grid-template-columns:3fr 1fr;gap:14px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.g21{display:grid;grid-template-columns:2fr 1fr;gap:16px;}
+.g12{display:grid;grid-template-columns:1fr 2fr;gap:16px;}
+.g31{display:grid;grid-template-columns:3fr 1fr;gap:16px;}
 @media(max-width:1100px){.g4{grid-template-columns:1fr 1fr;}.g21,.g12,.g31{grid-template-columns:1fr;}}
 @media(max-width:700px){.g2,.g3{grid-template-columns:1fr;}.g4{grid-template-columns:1fr 1fr;}}
 
 /* ── KPI CARDS ── */
-.kpi-card{background:var(--white);border-radius:var(--radius);padding:18px 20px;
-  border:1px solid var(--g200);box-shadow:var(--shadow);}
-.kpi-label{font-size:11px;font-weight:600;color:var(--g400);text-transform:uppercase;
-  letter-spacing:0.06em;margin-bottom:8px;}
-.kpi-val{font-size:26px;font-weight:900;color:var(--g900);line-height:1;}
-.kpi-sub{font-size:12px;color:var(--g400);margin-top:5px;}
-.kpi-delta{font-size:12px;font-weight:700;margin-top:4px;}
+.kpi-card{background:var(--white);border-radius:var(--radius);padding:20px 22px;
+  border:1px solid var(--g200);box-shadow:var(--shadow);
+  transition:box-shadow 0.2s, transform 0.2s;position:relative;overflow:hidden;}
+.kpi-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg, var(--amber), var(--amber-d));
+  opacity:0;transition:opacity 0.2s;
+}
+.kpi-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px);}
+.kpi-card:hover::before{opacity:1;}
+.kpi-label{font-size:10px;font-weight:700;color:var(--g400);text-transform:uppercase;
+  letter-spacing:0.08em;margin-bottom:10px;}
+.kpi-val{font-size:30px;font-weight:900;color:var(--g900);line-height:1;
+  letter-spacing:-0.025em;font-variant-numeric:tabular-nums;}
+.kpi-sub{font-size:11px;color:var(--g400);margin-top:6px;}
+.kpi-delta{font-size:11.5px;font-weight:700;margin-top:6px;display:flex;align-items:center;gap:3px;}
 .kpi-delta.pos{color:var(--green);}
 .kpi-delta.neg{color:var(--red);}
 .kpi-delta.neu{color:var(--g400);}
 
 /* ── BE HERO ── */
-.be-hero{background:var(--white);border-radius:var(--radius);padding:22px 24px;
-  border:1px solid var(--g200);box-shadow:var(--shadow);margin-bottom:16px;}
-.be-bar-bg{height:10px;background:var(--g100);border-radius:99px;overflow:hidden;margin:14px 0 10px;}
-.be-bar-fill{height:10px;border-radius:99px;transition:width 0.8s cubic-bezier(0.4,0,0.2,1);}
-.be-meta{display:flex;gap:24px;flex-wrap:wrap;}
-.be-meta-item{display:flex;flex-direction:column;}
-.be-meta-label{font-size:10px;font-weight:600;color:var(--g400);text-transform:uppercase;letter-spacing:0.05em;}
-.be-meta-val{font-size:14px;font-weight:700;color:var(--g900);margin-top:2px;}
+.be-hero{background:linear-gradient(135deg, #1a1713 0%, #111009 100%);
+  border-radius:var(--radius);padding:26px 28px;
+  border:1px solid rgba(255,255,255,0.06);
+  box-shadow:0 4px 24px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.1);
+  margin-bottom:16px;position:relative;overflow:hidden;}
+.be-hero::after{
+  content:'';position:absolute;top:-60px;right:-60px;
+  width:220px;height:220px;
+  background:radial-gradient(circle, rgba(245,158,11,0.08) 0%, transparent 70%);
+  pointer-events:none;
+}
+.be-hero .be-period-label{color:rgba(255,255,255,0.45);}
+.be-hero #be-ventas{color:#fff;}
+.be-hero .be-sep{color:rgba(255,255,255,0.3);}
+.be-hero #be-objetivo{color:rgba(255,255,255,0.55);}
+.be-hero .be-faltan-label{color:rgba(255,255,255,0.4);}
+.be-bar-bg{height:10px;background:rgba(255,255,255,0.08);border-radius:99px;overflow:hidden;margin:20px 0 14px;}
+.be-bar-fill{height:10px;border-radius:99px;transition:width 1.2s cubic-bezier(0.4,0,0.2,1);
+  background:linear-gradient(90deg, var(--amber), #fbbf24);}
+.be-meta{display:flex;gap:24px;flex-wrap:wrap;padding-top:2px;border-top:1px solid rgba(255,255,255,0.07);}
+.be-meta-item{display:flex;flex-direction:column;padding-top:12px;}
+.be-meta-label{font-size:9.5px;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.08em;}
+.be-meta-val{font-size:16px;font-weight:800;color:#fff;margin-top:4px;letter-spacing:-0.02em;}
 
 /* ── PERIOD TABS ── */
-.period-bar{display:flex;background:var(--g100);border-radius:10px;padding:3px;gap:3px;width:fit-content;margin-bottom:16px;}
-.period-btn{padding:6px 14px;border-radius:8px;border:none;font-size:12px;font-weight:600;
+.period-bar{display:flex;background:var(--g100);border-radius:10px;padding:3px;gap:2px;width:fit-content;margin-bottom:16px;}
+.period-btn{padding:5px 14px;border-radius:8px;border:none;font-size:11.5px;font-weight:600;
   background:none;color:var(--g400);transition:all 0.15s;}
-.period-btn.active{background:var(--white);color:var(--g900);box-shadow:0 1px 3px rgba(0,0,0,0.08);}
+.period-btn.active{background:var(--white);color:var(--g900);box-shadow:0 1px 4px rgba(0,0,0,0.1);font-weight:700;}
+/* Dark variant (inside be-hero) */
+.be-hero .period-bar{background:rgba(255,255,255,0.07);}
+.be-hero .period-btn{color:rgba(255,255,255,0.45);}
+.be-hero .period-btn.active{background:rgba(255,255,255,0.12);color:#fff;box-shadow:0 1px 6px rgba(0,0,0,0.3);}
 
 /* ── INPUTS & FORMS ── */
 .fi{width:100%;padding:10px 13px;border:1.5px solid var(--g200);border-radius:10px;
-  font-size:13px;color:var(--g900);background:var(--g50);outline:none;transition:border-color 0.15s;}
-.fi:focus{border-color:var(--amber);background:var(--white);}
-.fl{display:block;font-size:11px;font-weight:600;color:var(--g600);text-transform:uppercase;
-  letter-spacing:0.05em;margin-bottom:5px;}
+  font-size:13px;color:var(--g900);background:var(--g50);outline:none;
+  transition:border-color 0.15s, box-shadow 0.15s, background 0.15s;}
+.fi:focus{border-color:var(--amber);background:var(--white);box-shadow:0 0 0 3px rgba(245,158,11,0.1);}
+.fl{display:block;font-size:10.5px;font-weight:700;color:var(--g600);text-transform:uppercase;
+  letter-spacing:0.06em;margin-bottom:5px;}
 .fg{margin-bottom:14px;}
 .fg-row{display:grid;gap:10px;margin-bottom:14px;}
 .fg-row.c2{grid-template-columns:1fr 1fr;}
 .fg-row.c3{grid-template-columns:1fr 1fr 1fr;}
-.btn-primary{padding:12px 20px;background:var(--amber);color:var(--white);border:none;
-  border-radius:10px;font-size:13px;font-weight:700;width:100%;transition:background 0.15s;}
-.btn-primary:hover{background:var(--amber-d);}
-.btn-primary:disabled{background:var(--g300);cursor:not-allowed;}
-.btn-sec{padding:10px 16px;background:var(--g100);color:var(--g700);border:none;
-  border-radius:10px;font-size:12px;font-weight:600;transition:background 0.15s;}
-.btn-sec:hover{background:var(--g200);}
-.btn-danger{padding:8px 14px;background:var(--red-l);color:var(--red);border:none;
-  border-radius:8px;font-size:12px;font-weight:700;transition:background 0.15s;}
-.btn-danger:hover{background:#fecaca;}
+.btn-primary{padding:12px 20px;
+  background:linear-gradient(135deg, var(--amber) 0%, var(--amber-d) 100%);
+  color:var(--white);border:none;border-radius:10px;font-size:13px;font-weight:700;
+  width:100%;transition:all 0.15s;box-shadow:0 2px 8px rgba(245,158,11,0.3);}
+.btn-primary:hover{background:linear-gradient(135deg,#fbbf24 0%,var(--amber) 100%);
+  box-shadow:0 4px 14px rgba(245,158,11,0.4);transform:translateY(-1px);}
+.btn-primary:active{transform:translateY(0);}
+.btn-primary:disabled{background:var(--g300);box-shadow:none;cursor:not-allowed;transform:none;}
+.btn-sec{padding:9px 15px;background:var(--g100);color:var(--g700);border:1px solid var(--g200);
+  border-radius:10px;font-size:12px;font-weight:600;transition:all 0.15s;}
+.btn-sec:hover{background:var(--g200);border-color:var(--g300);}
+.btn-danger{padding:7px 13px;background:var(--red-l);color:var(--red);border:none;
+  border-radius:8px;font-size:11.5px;font-weight:700;transition:all 0.15s;}
+.btn-danger:hover{background:#fecaca;transform:translateY(-1px);}
+.btn-sec.active-chart{background:var(--g800);color:#fff;border-color:var(--g800);}
 
 /* ── SLIDE PANEL ── */
 #overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:299;
-  display:none;backdrop-filter:blur(2px);}
+  display:none;backdrop-filter:blur(4px);transition:opacity 0.2s;}
 #overlay.show{display:block;}
-#slide-panel{position:fixed;top:0;right:-480px;width:440px;height:100vh;
-  background:var(--white);z-index:300;transition:right 0.3s cubic-bezier(0.4,0,0.2,1);
-  display:flex;flex-direction:column;box-shadow:-12px 0 40px rgba(0,0,0,0.12);}
+#slide-panel{position:fixed;top:0;right:-500px;width:460px;height:100vh;
+  background:var(--white);z-index:300;transition:right 0.32s cubic-bezier(0.4,0,0.2,1);
+  display:flex;flex-direction:column;
+  box-shadow:-20px 0 80px rgba(0,0,0,0.18), -1px 0 0 var(--g200);}
 #slide-panel.open{right:0;}
-.sp-header{padding:18px 20px 0;border-bottom:1px solid var(--g100);}
-.sp-title{font-size:16px;font-weight:800;color:var(--g900);}
-.sp-body{flex:1;overflow-y:auto;padding:20px;}
-.sp-tabs{display:flex;gap:4px;margin:12px 0 0;}
+.sp-header{padding:22px 24px 0;border-bottom:1px solid var(--g100);}
+.sp-title{font-size:17px;font-weight:800;color:var(--g900);letter-spacing:-0.025em;}
+.sp-body{flex:1;overflow-y:auto;padding:24px;}
+.sp-tabs{display:flex;gap:2px;margin:14px 0 0;}
 .sp-tab{padding:8px 14px;font-size:12px;font-weight:600;border:none;background:none;
-  color:var(--g400);border-bottom:2px solid transparent;transition:all 0.15s;}
-.sp-tab.active{color:var(--amber);border-bottom-color:var(--amber);}
-.sp-close{background:none;border:none;font-size:22px;color:var(--g400);padding:0;line-height:1;}
+  color:var(--g400);border-bottom:2px solid transparent;transition:all 0.15s;border-radius:6px 6px 0 0;}
+.sp-tab:hover{color:var(--g700);background:var(--g50);}
+.sp-tab.active{color:var(--amber-d);border-bottom-color:var(--amber);background:var(--amber-ll);}
+.sp-close{background:var(--g100);border:none;font-size:16px;color:var(--g500);
+  width:32px;height:32px;border-radius:9px;display:flex;align-items:center;
+  justify-content:center;transition:all 0.15s;line-height:1;}
+.sp-close:hover{background:var(--g200);color:var(--g800);transform:scale(1.05);}
 
 /* ── FAB ── */
-#fab{position:fixed;bottom:26px;right:26px;width:56px;height:56px;
-  background:var(--amber);border-radius:50%;border:none;
-  box-shadow:0 4px 18px rgba(245,158,11,0.5);font-size:26px;color:var(--white);
-  z-index:290;transition:transform 0.2s,background 0.15s;display:flex;align-items:center;justify-content:center;}
-#fab:hover{transform:scale(1.08);background:var(--amber-d);}
+#fab{position:fixed;bottom:28px;right:28px;width:52px;height:52px;
+  background:linear-gradient(135deg,var(--amber) 0%,var(--amber-d) 100%);
+  border-radius:16px;border:none;
+  box-shadow:0 4px 20px rgba(245,158,11,0.5), 0 1px 3px rgba(0,0,0,0.1);
+  font-size:22px;font-weight:300;color:var(--white);
+  z-index:290;transition:all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  display:flex;align-items:center;justify-content:center;}
+#fab:hover{transform:scale(1.08) rotate(45deg);
+  box-shadow:0 8px 32px rgba(245,158,11,0.65);
+  border-radius:50%;}
 
 /* ── TABLE ── */
-.tbl{width:100%;border-collapse:collapse;font-size:12px;}
-.tbl th{text-align:left;padding:8px 10px;color:var(--g400);font-weight:600;
-  border-bottom:1px solid var(--g100);white-space:nowrap;}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px;}
+.tbl thead{position:sticky;top:0;background:var(--white);}
+.tbl th{text-align:left;padding:9px 12px;color:var(--g400);font-weight:700;
+  border-bottom:1.5px solid var(--g200);white-space:nowrap;font-size:10.5px;
+  text-transform:uppercase;letter-spacing:0.05em;}
 .tbl th.r{text-align:right;}
-.tbl td{padding:9px 10px;border-bottom:1px solid var(--g50);color:var(--g700);}
-.tbl td.r{text-align:right;font-weight:600;}
-.tbl tr:hover td{background:var(--g50);}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--g100);color:var(--g700);}
+.tbl td.r{text-align:right;font-weight:700;}
+.tbl tbody tr{transition:background 0.1s;}
+.tbl tbody tr:hover td{background:var(--g50);}
 .tbl tr.today td{background:var(--amber-ll);}
 
 /* ── BADGES ── */
-.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:99px;
   font-size:10px;font-weight:700;letter-spacing:0.03em;}
 .badge-green{background:var(--green-l);color:#059669;}
 .badge-red{background:var(--red-l);color:#dc2626;}
@@ -196,33 +277,39 @@ input,select,textarea{font-family:inherit;}
 
 /* ── PROGRESS BAR ── */
 .pbar-bg{height:6px;background:var(--g100);border-radius:99px;overflow:hidden;}
-.pbar-fill{height:6px;border-radius:99px;transition:width 0.7s ease;}
+.pbar-fill{height:6px;border-radius:99px;transition:width 0.8s cubic-bezier(0.4,0,0.2,1);}
 
 /* ── COMING SOON placeholder ── */
 .coming-soon{display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:60px 20px;text-align:center;color:var(--g400);}
-.coming-soon .icon{font-size:48px;margin-bottom:16px;opacity:0.5;}
+  padding:72px 20px;text-align:center;color:var(--g400);}
+.coming-soon .icon{font-size:52px;margin-bottom:16px;opacity:0.45;}
 .coming-soon h3{font-size:16px;font-weight:700;color:var(--g700);margin-bottom:8px;}
-.coming-soon p{font-size:13px;max-width:320px;line-height:1.6;}
+.coming-soon p{font-size:13px;max-width:320px;line-height:1.65;}
 
 /* ── CASH POSITION CARDS ── */
-.cash-card{background:var(--white);border-radius:var(--radius);padding:18px 20px;
-  border:1.5px solid var(--g200);display:flex;flex-direction:column;gap:6px;}
+.cash-card{background:var(--white);border-radius:var(--radius);padding:20px 22px;
+  border:1.5px solid var(--g200);display:flex;flex-direction:column;gap:8px;
+  box-shadow:var(--shadow);transition:all 0.2s;position:relative;overflow:hidden;}
+.cash-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:var(--g200);transition:background 0.2s;}
+.cash-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px);}
 .cash-card.highlight{border-color:var(--amber);background:var(--amber-ll);}
-.cash-label{font-size:11px;font-weight:600;color:var(--g400);text-transform:uppercase;letter-spacing:0.05em;}
-.cash-val{font-size:28px;font-weight:900;line-height:1;}
+.cash-card.highlight::before{background:linear-gradient(90deg,var(--amber),var(--amber-d));}
+.cash-label{font-size:10px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:0.08em;}
+.cash-val{font-size:32px;font-weight:900;line-height:1;letter-spacing:-0.025em;}
 .cash-val.green{color:var(--green);}
 .cash-val.amber{color:var(--amber-d);}
 .cash-val.red{color:var(--red);}
 
 /* ── PAYMENT LIST ── */
-.pay-item{display:flex;align-items:center;gap:12px;padding:11px 14px;
-  border-radius:10px;border:1px solid var(--g200);margin-bottom:7px;transition:border-color 0.15s;}
-.pay-item:hover{border-color:var(--amber);}
-.pay-item.overdue{border-color:#fca5a5;background:#fff5f5;}
+.pay-item{display:flex;align-items:center;gap:12px;padding:12px 14px;
+  border-radius:12px;border:1px solid var(--g200);margin-bottom:8px;
+  transition:all 0.15s;background:var(--white);}
+.pay-item:hover{border-color:var(--amber);box-shadow:0 2px 10px rgba(245,158,11,0.1);}
+.pay-item.overdue{border-color:#fca5a5;background:#fff8f8;}
 .pay-item.today{border-color:var(--amber);background:var(--amber-ll);}
-.pay-item.paid{opacity:0.45;}
-.pay-check{width:20px;height:20px;border-radius:6px;border:2px solid var(--g300);
+.pay-item.paid{opacity:0.4;}
+.pay-check{width:22px;height:22px;border-radius:7px;border:2px solid var(--g300);
   display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;
   transition:all 0.15s;}
 .pay-check.done{background:var(--green);border-color:var(--green);color:#fff;font-size:11px;font-weight:900;}
@@ -231,17 +318,18 @@ input,select,textarea{font-family:inherit;}
 .pay-concepto{font-size:13px;font-weight:700;color:var(--g900);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .pay-concepto.paid-text{text-decoration:line-through;color:var(--g400);}
-.pay-cat{font-size:10px;color:var(--g400);margin-top:1px;}
-.pay-amount{font-size:14px;font-weight:800;flex-shrink:0;}
+.pay-cat{font-size:10.5px;color:var(--g400);margin-top:1px;}
+.pay-amount{font-size:14px;font-weight:800;flex-shrink:0;letter-spacing:-0.01em;}
 .pay-amount.paid-text{color:var(--g300);text-decoration:line-through;}
 
 /* ── TOAST ── */
-#toast{position:fixed;bottom:96px;right:26px;padding:11px 18px;border-radius:10px;
-  font-size:13px;font-weight:700;z-index:400;opacity:0;transform:translateY(8px);
-  transition:all 0.25s;pointer-events:none;color:var(--white);}
+#toast{position:fixed;bottom:100px;right:28px;padding:12px 20px;border-radius:12px;
+  font-size:13px;font-weight:700;z-index:400;opacity:0;transform:translateY(10px);
+  transition:all 0.25s cubic-bezier(0.4,0,0.2,1);pointer-events:none;color:var(--white);
+  box-shadow:var(--shadow-md);max-width:320px;}
 #toast.show{opacity:1;transform:translateY(0);}
-#toast.ok{background:var(--green);}
-#toast.err{background:var(--red);}
+#toast.ok{background:linear-gradient(135deg,#10b981,#059669);}
+#toast.err{background:linear-gradient(135deg,#ef4444,#dc2626);}
 #toast.info{background:var(--g800);}
 
 /* ── SPINNER ── */
@@ -250,14 +338,25 @@ input,select,textarea{font-family:inherit;}
 @keyframes sp{to{transform:rotate(360deg);}}
 
 /* ── SECTION HEADER ── */
-.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
-.section-title{font-size:15px;font-weight:700;color:var(--g900);}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;}
+.section-title{font-size:15px;font-weight:800;color:var(--g900);letter-spacing:-0.02em;}
 .section-actions{display:flex;gap:8px;align-items:center;}
 
+/* ── SCROLLBARS ── */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--g300);border-radius:99px;}
+::-webkit-scrollbar-thumb:hover{background:var(--g400);}
+
+/* ── TABLE refinements ── */
+.tbl th{font-size:10px;letter-spacing:0.07em;}
+.tbl td{font-size:13px;}
+.tbl tbody tr:last-child td{border-bottom:none;}
+
 /* ── IMPORT ZONE ── */
-.import-zone{border:2px dashed var(--g300);border-radius:12px;padding:24px;
+.import-zone{border:2px dashed var(--g300);border-radius:14px;padding:28px 24px;
   text-align:center;cursor:pointer;transition:all 0.15s;background:var(--g50);}
-.import-zone:hover,.import-zone.drag{border-color:var(--amber);background:var(--amber-ll);}
+.import-zone:hover,.import-zone.drag{border-color:var(--amber);background:var(--amber-ll);border-style:solid;}
 .import-zone p{font-size:13px;color:var(--g400);margin-top:8px;}
 
 /* ── FORECAST HORIZON ── */
@@ -270,10 +369,11 @@ input,select,textarea{font-family:inherit;}
 .mod-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;
   border-radius:99px;font-size:11px;font-weight:700;border:1.5px solid var(--g200);
   background:var(--white);cursor:pointer;transition:all 0.15s;}
-.mod-chip:hover{border-color:var(--amber);color:var(--amber-d);}
+.mod-chip:hover{border-color:var(--amber);color:var(--amber-d);background:var(--amber-ll);}
+.mod-chip.active{border-color:var(--amber);background:var(--amber-ll);color:var(--amber-d);}
 
 /* ── SCROLLABLE TABLE WRAPPER ── */
-.tbl-wrap{overflow-x:auto;}
+.tbl-wrap{overflow-x:auto;border-radius:10px;}
 
 /* ── SETTINGS LINK ── */
 .settings-row{display:flex;align-items:center;justify-content:space-between;
@@ -284,45 +384,78 @@ input,select,textarea{font-family:inherit;}
 .settings-val{font-size:13px;font-weight:700;color:var(--amber-d);}
 
 /* ── FACTURA CARDS ── */
-.fc{background:var(--white);border-radius:12px;border:1.5px solid var(--g200);
-  margin-bottom:8px;overflow:hidden;transition:border-color 0.15s;}
-.fc:hover{border-color:var(--amber);}
-.fc-header{display:flex;align-items:center;gap:12px;padding:13px 14px;cursor:pointer;}
-.fc-thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;
+.fc{background:var(--white);border-radius:14px;border:1.5px solid var(--g200);
+  margin-bottom:8px;overflow:hidden;transition:all 0.15s;box-shadow:var(--shadow-sm);}
+.fc:hover{border-color:var(--amber);box-shadow:0 2px 12px rgba(245,158,11,0.12);}
+.fc-header{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;}
+.fc-thumb{width:44px;height:44px;border-radius:10px;
   background:var(--g100);display:flex;align-items:center;justify-content:center;
   font-size:20px;flex-shrink:0;overflow:hidden;}
 .fc-thumb img{width:100%;height:100%;object-fit:cover;}
 .fc-info{flex:1;min-width:0;}
 .fc-prov{font-size:13px;font-weight:700;color:var(--g900);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.fc-meta{font-size:11px;color:var(--g400);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;}
-.fc-amount{font-size:14px;font-weight:800;text-align:right;flex-shrink:0;}
-.fc-body{display:none;padding:0 14px 14px;border-top:1px solid var(--g100);}
+.fc-meta{font-size:11px;color:var(--g400);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap;}
+.fc-amount{font-size:14px;font-weight:800;text-align:right;flex-shrink:0;letter-spacing:-0.01em;}
+.fc-body{display:none;padding:0 16px 14px;border-top:1px solid var(--g100);}
 .fc-body.open{display:block;}
-.fc-detail-row{display:flex;justify-content:space-between;padding:6px 0;
+.fc-detail-row{display:flex;justify-content:space-between;padding:7px 0;
   border-bottom:1px solid var(--g50);font-size:12px;}
 .fc-detail-row:last-child{border:none;}
 
 /* ── OCR BADGE ── */
 .badge-ocr{background:#ede9fe;color:#7c3aed;}
 
+/* ── SUB-TABS módulo Menú ── */
+.sub-tab{background:transparent;border:none;color:var(--g400);padding:10px 16px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;border-radius:0;transition:color 0.15s;}
+.sub-tab:hover{color:var(--g900);}
+.sub-tab.active{color:var(--amber-d);border-bottom-color:var(--amber);}
+
+/* ── ALERTAS FC > techo ── */
+.m-alert-box{background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start;}
+.m-alert-box .m-alert-icon{font-size:22px;flex-shrink:0;}
+.m-alert-box .m-alert-content{flex:1;font-size:12px;color:var(--g900);line-height:1.5;}
+.m-alert-box .m-alert-content strong{color:#b91c1c;}
+.m-alert-box ul{margin:6px 0 0;padding-left:18px;}
+.m-alert-box li{margin-bottom:3px;}
+
+/* ── BARRA FC ── */
+.fc-bar-wrap{background:var(--g100);height:5px;border-radius:3px;overflow:hidden;margin-top:4px;min-width:60px;}
+.fc-bar-fill{height:100%;transition:width 0.3s;}
+.fc-bar-fill.ok{background:var(--green);}
+.fc-bar-fill.warn{background:var(--amber);}
+.fc-bar-fill.alert{background:var(--red);}
+
+/* ── Etiquetas sugerencia ── */
+.pvp-sug{font-size:11px;font-weight:700;color:var(--amber-d);}
+.pvp-sug-mute{font-size:11px;color:var(--g400);}
+
+/* ── Editor de recetas en panel ── */
+.recipe-row{display:grid;grid-template-columns:1fr 70px 80px 30px;gap:6px;align-items:flex-end;margin-bottom:6px;}
+.recipe-row select, .recipe-row input{font-size:11px;padding:5px 7px;border:1px solid var(--g200);border-radius:6px;background:var(--white);}
+.recipe-row .ing-btn-del{background:transparent;border:1px solid var(--g200);color:var(--red);padding:5px;border-radius:6px;cursor:pointer;font-size:13px;}
+.recipe-row .ing-btn-del:hover{background:#fef2f2;}
+.recipe-cost-preview{background:#fffbeb;border:1px solid #fed7aa;border-radius:8px;padding:10px 12px;margin-top:8px;font-size:12px;}
+.recipe-cost-preview .label{color:var(--g400);font-size:10px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;}
+.recipe-cost-preview .val{font-weight:700;color:var(--g900);}
+
 /* ── DEUDA ITEMS ── */
-.di-card{background:var(--white);border-radius:12px;border:1.5px solid var(--g200);
-  margin-bottom:8px;overflow:hidden;transition:border-color 0.15s;}
-.di-card:hover{border-color:var(--amber);}
-.di-card.full{border-color:var(--green-l);opacity:0.7;}
-.di-header{display:flex;align-items:center;gap:10px;padding:13px 14px;cursor:pointer;}
+.di-card{background:var(--white);border-radius:14px;border:1.5px solid var(--g200);
+  margin-bottom:8px;overflow:hidden;transition:all 0.15s;box-shadow:var(--shadow-sm);}
+.di-card:hover{border-color:var(--amber);box-shadow:0 2px 12px rgba(245,158,11,0.1);}
+.di-card.full{border-color:var(--green-l);opacity:0.65;}
+.di-header{display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;}
 .di-prog{flex:1;min-width:0;}
 .di-name{font-size:13px;font-weight:700;color:var(--g900);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px;}
 .di-name.full{text-decoration:line-through;color:var(--g400);}
 .di-amounts{display:flex;justify-content:space-between;align-items:center;margin-top:3px;}
-.di-pend{font-size:13px;font-weight:800;}
+.di-pend{font-size:14px;font-weight:900;letter-spacing:-0.01em;}
 .di-orig{font-size:11px;color:var(--g400);}
-.di-body{display:none;padding:0 14px 14px;border-top:1px solid var(--g100);}
+.di-body{display:none;padding:0 16px 14px;border-top:1px solid var(--g100);}
 .di-body.open{display:block;}
 .di-hist{margin-top:10px;}
-.di-pay-row{display:flex;align-items:center;gap:8px;padding:6px 0;
+.di-pay-row{display:flex;align-items:center;gap:8px;padding:7px 0;
   border-bottom:1px solid var(--g50);font-size:12px;color:var(--g700);}
 .di-pay-row:last-child{border:none;}
 
@@ -333,17 +466,15 @@ input,select,textarea{font-family:inherit;}
 
 /* ── CAT SUMMARY ── */
 .cat-row{display:flex;align-items:center;justify-content:space-between;
-  padding:8px 0;border-bottom:1px solid var(--g50);}
+  padding:9px 0;border-bottom:1px solid var(--g50);}
 .cat-row:last-child{border:none;}
-
-/* ── MOD CHIP ACTIVE ── */
-.mod-chip.active{border-color:var(--amber);background:var(--amber-ll);color:var(--amber-d);}
 
 /* Responsive content padding */
 @media(max-width:700px){
-  #content{padding:14px 12px;}
+  #content{padding:16px 14px;}
   #slide-panel{width:100%;right:-100%;}
-  .kpi-val{font-size:22px;}
+  .kpi-val{font-size:24px;}
+  .tab-btn{padding:0 11px;font-size:11px;}
 }
 </style>
 </head>
@@ -355,8 +486,11 @@ input,select,textarea{font-family:inherit;}
 <!-- ══ TOPBAR ═════════════════════════════════════════ -->
 <div id="topbar">
   <div class="topbar-brand">
-    <span class="topbar-logo">Mesaquince</span>
-    <span class="topbar-badge">OS v1.0</span>
+    <span class="topbar-logo">
+      <span class="topbar-logo-icon">🔥</span>
+      Mesaquince
+    </span>
+    <span class="topbar-badge">OS v2.1</span>
   </div>
   <div class="topbar-right">
     <span class="topbar-sync" id="sync-label">Local · IndexedDB</span>
@@ -414,24 +548,24 @@ input,select,textarea{font-family:inherit;}
     <div class="be-hero">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
         <div>
-          <div class="period-bar" style="margin-bottom:10px;">
-            <button class="period-btn active" id="be-period-sem" onclick="setBePeriod('sem')">Semana</button>
-            <button class="period-btn" id="be-period-mes" onclick="setBePeriod('mes')">Mes</button>
+          <div class="period-bar" style="margin-bottom:12px;background:rgba(255,255,255,0.07);">
+            <button class="period-btn active" id="be-period-sem" onclick="setBePeriod('sem')" style="color:rgba(255,255,255,0.5);">Semana</button>
+            <button class="period-btn" id="be-period-mes" onclick="setBePeriod('mes')" style="color:rgba(255,255,255,0.5);">Mes</button>
           </div>
-          <p style="font-size:11px;font-weight:600;color:var(--g400);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;" id="be-period-label">Break Even · Semana actual</p>
+          <p class="be-period-label" style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;" id="be-period-label">Break Even · Semana actual</p>
           <div style="display:flex;align-items:baseline;gap:10px;">
-            <span id="be-ventas" style="font-size:36px;font-weight:900;color:var(--g900);">€—</span>
-            <span style="font-size:16px;color:var(--g400);">/ <span id="be-objetivo">€—</span></span>
+            <span id="be-ventas" style="font-size:40px;font-weight:900;color:#fff;letter-spacing:-0.03em;">€—</span>
+            <span class="be-sep" style="font-size:16px;"> / <span id="be-objetivo" style="font-size:18px;font-weight:700;">€—</span></span>
           </div>
         </div>
         <div style="text-align:right;">
-          <p style="font-size:11px;color:var(--g400);margin-bottom:4px;">Faltan para BE</p>
-          <p id="be-gap" style="font-size:28px;font-weight:800;color:var(--red);">€—</p>
-          <p id="be-gap-sub" style="font-size:11px;color:var(--g400);margin-top:3px;"></p>
+          <p class="be-faltan-label" style="font-size:10.5px;margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">Faltan para BE</p>
+          <p id="be-gap" style="font-size:30px;font-weight:900;color:#f87171;letter-spacing:-0.02em;">€—</p>
+          <p id="be-gap-sub" style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:4px;"></p>
         </div>
       </div>
       <div class="be-bar-bg">
-        <div class="be-bar-fill" id="be-bar" style="width:0%;background:var(--amber);"></div>
+        <div class="be-bar-fill" id="be-bar" style="width:0%;"></div>
       </div>
       <div class="be-meta">
         <div class="be-meta-item">
@@ -452,7 +586,7 @@ input,select,textarea{font-family:inherit;}
         </div>
         <div class="be-meta-item">
           <span class="be-meta-label">Necesario/día restante</span>
-          <span class="be-meta-val" id="be-per-day" style="color:var(--amber-d);">—</span>
+          <span class="be-meta-val" id="be-per-day" style="color:var(--amber);">—</span>
         </div>
       </div>
     </div>
@@ -613,73 +747,165 @@ input,select,textarea{font-family:inherit;}
       <div class="kpi-card"><div class="kpi-label">📈 Margen medio</div><div class="kpi-val" id="m-margen">—</div></div>
     </div>
 
-    <!-- BCG + PARETO ROW -->
-    <div style="display:grid;grid-template-columns:3fr 2fr;gap:16px;margin-bottom:16px;">
+    <!-- ALERTAS FC > 30% -->
+    <div id="m-alerts" style="display:none;margin-bottom:16px;"></div>
+
+    <!-- SUB-TABS -->
+    <div style="display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--g200);">
+      <button class="sub-tab active" data-stab="platos" onclick="switchMenuSubtab('platos')">🍽️ Platos</button>
+      <button class="sub-tab" data-stab="ingredientes" onclick="switchMenuSubtab('ingredientes')">🥩 Ingredientes</button>
+      <button class="sub-tab" data-stab="historico" onclick="switchMenuSubtab('historico')">📈 Histórico precios</button>
+      <button class="sub-tab" data-stab="bcg" onclick="switchMenuSubtab('bcg')">📊 Matriz BCG</button>
+    </div>
+
+    <!-- SUB-TAB: PLATOS -->
+    <div class="menu-subpanel" id="msub-platos">
       <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <div class="card-title">Matriz BCG — Ingeniería de Menú</div>
-          <div style="font-size:10px;color:var(--g400);white-space:nowrap;">⭐ Estrella · 🐄 Vaca · 🧩 Reto · 🐕 Perro</div>
+        <div class="section-head">
+          <div>
+            <div class="card-title">Escandallos</div>
+            <div class="card-sub" id="menu-table-sub" style="margin-top:2px;">—</div>
+          </div>
+          <div class="section-actions">
+            <input class="fi" type="text" id="menu-search" placeholder="Buscar plato…" style="font-size:12px;padding:6px 10px;width:160px;" oninput="filterMenu()"/>
+            <select class="fi" style="font-size:12px;padding:6px 10px;width:auto;" id="menu-filter-cat" onchange="filterMenu()">
+              <option value="ALL">Todas las categorías</option>
+              <option value="Para Empezar">Para Empezar</option>
+              <option value="Vegetales">Vegetales</option>
+              <option value="Carnes">Carnes</option>
+              <option value="Complementos">Complementos</option>
+              <option value="Dulces">Dulces</option>
+              <option value="Otros">Otros</option>
+            </select>
+            <select class="fi" style="font-size:12px;padding:6px 10px;width:auto;" id="menu-filter-bcg" onchange="filterMenu()">
+              <option value="ALL">Todos los cuadrantes</option>
+              <option value="ESTRELLA">⭐ Estrella</option>
+              <option value="VACA">🐄 Vaca</option>
+              <option value="RETO">🧩 Reto</option>
+              <option value="PERRO">🐕 Perro</option>
+            </select>
+            <button class="btn-primary" onclick="openPlatoPanel()">＋ Plato</button>
+          </div>
         </div>
-        <div style="height:260px;position:relative;">
-          <canvas id="bcg-chart"></canvas>
+        <div class="tbl-wrap">
+          <table class="tbl" id="menu-tbl">
+            <thead>
+              <tr>
+                <th>Plato</th>
+                <th>Categoría</th>
+                <th class="r">Precio</th>
+                <th class="r">Costo</th>
+                <th class="r">FC %</th>
+                <th class="r">Margen €</th>
+                <th class="r">Sugerencia PVP</th>
+                <th class="r">Uds/mes</th>
+                <th>BCG</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="menu-tbody">
+              <tr><td colspan="10" style="text-align:center;color:var(--g400);padding:30px;">Cargando escandallos...</td></tr>
+            </tbody>
+          </table>
         </div>
-      </div>
-      <div class="card">
-        <div class="card-title" style="margin-bottom:10px;">📊 Top 10 — Ingresos/mes</div>
-        <div id="pareto-list" style="overflow-y:auto;max-height:290px;"></div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--g100);font-size:11px;color:var(--g400);">
+          💡 <strong>Sugerencia PVP</strong> = costo / <span id="m-fc-max-lbl">30</span>% (techo objetivo). Clic en el plato para ver/editar receta.
+        </div>
       </div>
     </div>
 
-    <!-- ESCANDALLO TABLE -->
-    <div class="card">
-      <div class="section-head">
-        <div>
-          <div class="card-title">Escandallos</div>
-          <div class="card-sub" id="menu-table-sub" style="margin-top:2px;">—</div>
+    <!-- SUB-TAB: INGREDIENTES -->
+    <div class="menu-subpanel" id="msub-ingredientes" style="display:none;">
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <div class="card-title">Catálogo de Ingredientes</div>
+            <div class="card-sub" id="ing-table-sub" style="margin-top:2px;">—</div>
+          </div>
+          <div class="section-actions">
+            <input class="fi" type="text" id="ing-search" placeholder="Buscar ingrediente / proveedor…" style="font-size:12px;padding:6px 10px;width:200px;" oninput="renderIngredientesList()"/>
+            <select class="fi" style="font-size:12px;padding:6px 10px;width:auto;" id="ing-filter-cat" onchange="renderIngredientesList()">
+              <option value="ALL">Todas las categorías</option>
+              <option value="Carne">Carne</option>
+              <option value="Pescado">Pescado</option>
+              <option value="Vegetal">Vegetal</option>
+              <option value="Lácteo">Lácteo</option>
+              <option value="Seco / Cereal">Seco / Cereal</option>
+              <option value="Salsa / Aderezo">Salsa / Aderezo</option>
+              <option value="Bebida">Bebida</option>
+              <option value="Otro">Otro</option>
+            </select>
+            <button class="btn-primary" onclick="openIngredientePanel()">＋ Ingrediente</button>
+          </div>
         </div>
-        <div class="section-actions">
-          <select class="fi" style="font-size:12px;padding:6px 10px;width:auto;" id="menu-filter-cat" onchange="filterMenu()">
-            <option value="ALL">Todas las categorías</option>
-            <option value="Para Empezar">Para Empezar</option>
-            <option value="Vegetales">Vegetales</option>
-            <option value="Carnes">Carnes</option>
-            <option value="Complementos">Complementos</option>
-            <option value="Dulces">Dulces</option>
-            <option value="Otros">Otros</option>
-          </select>
-          <select class="fi" style="font-size:12px;padding:6px 10px;width:auto;" id="menu-filter-bcg" onchange="filterMenu()">
-            <option value="ALL">Todos los cuadrantes</option>
-            <option value="ESTRELLA">⭐ Estrella</option>
-            <option value="VACA">🐄 Vaca</option>
-            <option value="RETO">🧩 Reto</option>
-            <option value="PERRO">🐕 Perro</option>
-          </select>
-          <button class="btn-primary" onclick="openPlatoPanel()">＋ Plato</button>
+        <div class="tbl-wrap">
+          <table class="tbl" id="ing-tbl">
+            <thead>
+              <tr>
+                <th>Ingrediente</th>
+                <th>Categoría</th>
+                <th>Proveedor</th>
+                <th class="r">Precio €/un</th>
+                <th class="r">Unidad</th>
+                <th class="r">Merma %</th>
+                <th class="r">Uso</th>
+                <th class="r">Δ último mes</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="ing-tbody">
+              <tr><td colspan="9" style="text-align:center;color:var(--g400);padding:30px;">Cargando ingredientes...</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
-      <div class="tbl-wrap">
-        <table class="tbl" id="menu-tbl">
-          <thead>
-            <tr>
-              <th>Plato</th>
-              <th>Categoría</th>
-              <th class="r">Precio</th>
-              <th class="r">Costo</th>
-              <th class="r">FC %</th>
-              <th class="r">Margen €</th>
-              <th class="r">Uds/mes</th>
-              <th class="r">Rev/mes</th>
-              <th>BCG</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="menu-tbody">
-            <tr><td colspan="10" style="text-align:center;color:var(--g400);padding:30px;">Cargando escandallos...</td></tr>
-          </tbody>
-        </table>
+    </div>
+
+    <!-- SUB-TAB: HISTÓRICO PRECIOS -->
+    <div class="menu-subpanel" id="msub-historico" style="display:none;">
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <div class="card-title">Histórico de cambios de precio</div>
+            <div class="card-sub" style="margin-top:2px;">Cada actualización de precio queda registrada con fecha, valor anterior y nota. Auto-loggeado al guardar una factura.</div>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Ingrediente</th>
+                <th class="r">Anterior</th>
+                <th class="r">Nuevo</th>
+                <th class="r">Δ</th>
+                <th>Origen / Nota</th>
+              </tr>
+            </thead>
+            <tbody id="hist-tbody">
+              <tr><td colspan="6" style="text-align:center;color:var(--g400);padding:30px;">Sin movimientos de precio.</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--g100);font-size:11px;color:var(--g400);">
-        💡 <strong>Uds/mes</strong> es editable — ajustalo con los datos reales de Loomis o manualmente para recalcular la Matriz BCG.
+    </div>
+
+    <!-- SUB-TAB: BCG -->
+    <div class="menu-subpanel" id="msub-bcg" style="display:none;">
+      <div style="display:grid;grid-template-columns:3fr 2fr;gap:16px;">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div class="card-title">Matriz BCG — Ingeniería de Menú</div>
+            <div style="font-size:10px;color:var(--g400);white-space:nowrap;">⭐ Estrella · 🐄 Vaca · 🧩 Reto · 🐕 Perro</div>
+          </div>
+          <div style="height:340px;position:relative;">
+            <canvas id="bcg-chart"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:10px;">📊 Top 10 — Ingresos/mes</div>
+          <div id="pareto-list" style="overflow-y:auto;max-height:360px;"></div>
+        </div>
       </div>
     </div>
 
@@ -1175,8 +1401,8 @@ input,select,textarea{font-family:inherit;}
               <span>Acumular al CMV del mes (si es mercadería)</span>
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
-              <input type="checkbox" id="f-imp-food" style="accent-color:var(--amber);"/>
-              <span>Actualizar precio de ingrediente en Food Cost</span>
+              <input type="checkbox" id="f-imp-fc" style="accent-color:var(--amber);" checked/>
+              <span>Actualizar precio de ingrediente en Food Cost <span style="color:var(--amber-d);font-size:10px;font-weight:600;">(abre matching)</span></span>
             </label>
           </div>
 
@@ -1442,7 +1668,7 @@ let DB; // IndexedDB instance
 
 // ── INDEXEDDB ─────────────────────────────────────────
 const DB_NAME    = 'MesaquinceOS';
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 
 function resetDB() {
   const req = indexedDB.deleteDatabase(DB_NAME);
@@ -1487,6 +1713,8 @@ function initDB() {
       makeStore('deuda',        { keyPath:'id' });
       makeStore('deuda_pagos',  { keyPath:'id', autoIncrement:true }, [['deuda_id','deuda_id']]);
       makeStore('escandallos',  { keyPath:'id', autoIncrement:true }, [['categoria','categoria']]);
+      makeStore('ingredientes', { keyPath:'id', autoIncrement:true }, [['categoria','categoria'],['nombre','nombre']]);
+      makeStore('precio_historico', { keyPath:'id', autoIncrement:true }, [['ing_id','ing_id'],['fecha','fecha']]);
     };
 
     req.onsuccess = e => {
@@ -2758,62 +2986,123 @@ async function runPDFExtract(pdfData) {
 }
 
 // ── PARSER OCR ────────────────────────────────────────
+// Palabras genéricas a ignorar en matching de proveedor
+const PROV_STOP_WORDS = new Set([
+  'BARCELONA','MADRID','VALENCIA','SEVILLA','BILBAO','ZARAGOZA','SPAIN','ESPAÑA',
+  'ESPANA','CATALUÑA','CATALUNA','CORNELLA','LLOBREGAT','HOSPITALET',
+  'SL','SLU','SA','SAU','SLL','SLNE','SCP','CB','AIE',
+  'COMPRAS','DISTRIBUCIONES','DISTRIBUCIO','ALIMENTARIA','IMPORTADORA',
+  'SOLUTIONS','FINANCE','LOGISTIC','SELECTION','SEAMLESS','COFFEE','ROASTERS',
+  'WATER','FRUITS','SELECTES','MANUFACTURES','MANUFACTURAS','CALIDAD','QUALITAT',
+  'GRUPO','GROUP','COMERCIAL','EMPRESA','EMPRESARIAL',
+]);
+
 function parseOCRText(text) {
   const lines = text.split(/\n/).map(l=>l.trim()).filter(Boolean);
 
-  // Total — buscar el importe más alto (suele ser el total)
-  let amounts = [];
-  const amtRegex = /(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})/g;
-  let m;
-  while ((m = amtRegex.exec(text)) !== null) {
-    const val = parseFloat(m[1].replace(/\./g,'').replace(',','.'));
-    if (val > 0 && val < 999999) amounts.push(val);
+  // ── 1. TOTAL — buscar primero patrones semánticos (NETO, TOTAL, A PAGAR)
+  let foundTotal = null;
+
+  // Patrones explícitos de línea total en facturas/albaranes españoles
+  const totalPatterns = [
+    /NETO\s*[|:€$]?\s*(\d{1,5}[.,]\d{2})/i,
+    /TOTAL\s+NETO\s*[|:€$]?\s*(\d{1,5}[.,]\d{2})/i,
+    /TOTAL\s+(?:FACTURA|ALBAR[AÁ]N|IVA\s+INCLUIDO|A\s+PAGAR)\s*[|:€$]?\s*(\d{1,5}[.,]\d{2})/i,
+    /IMPORTE\s+TOTAL\s*[|:€$]?\s*(\d{1,5}[.,]\d{2})/i,
+    /A\s+PAGAR\s*[|:€$]?\s*(\d{1,5}[.,]\d{2})/i,
+    /TOTAL\s*[|:€$]\s*(\d{1,5}[.,]\d{2})/i,
+  ];
+  for (const pat of totalPatterns) {
+    const m = pat.exec(text);
+    if (m) {
+      const v = parseFloat(m[1].replace(/\./g,'').replace(',','.'));
+      if (v > 0 && v < 50000) { foundTotal = v; break; }
+    }
   }
-  amounts = [...new Set(amounts)].sort((a,b)=>b-a);
-  if (amounts.length > 0 && !qEl('f-total').value) {
-    qEl('f-total').value = amounts[0].toFixed(2);
+
+  // Fallback: tomar todos los importes razonables (2-5 dígitos + 2 decimales)
+  // Excluye números tipo CIF (> 6 dígitos antes del decimal) o teléfonos
+  if (!foundTotal) {
+    let amounts = [];
+    const amtRegex = /(?<!\d)(\d{1,4}[.,]\d{2})(?!\d)/g;
+    let m;
+    while ((m = amtRegex.exec(text)) !== null) {
+      const val = parseFloat(m[1].replace(/\./g,'').replace(',','.'));
+      if (val >= 1 && val < 20000) amounts.push(val);
+    }
+    amounts = [...new Set(amounts)].sort((a,b)=>b-a);
+    if (amounts.length > 0) foundTotal = amounts[0];
+  }
+
+  if (foundTotal !== null && !qEl('f-total').value) {
+    qEl('f-total').value = foundTotal.toFixed(2);
     calcBase();
   }
 
-  // IVA
-  const ivaM = /IVA\s+(\d{1,2})\s*%/i.exec(text) || /(\d{1,2})\s*%\s*IVA/i.exec(text);
+  // ── 2. IVA
+  const ivaM = /IVA\s+(\d{1,2})\s*%/i.exec(text) || /(\d{1,2})\s*%\s*IVA/i.exec(text)
+             || /%\s*IVA[^%]*?(\d{1,2})/i.exec(text);
   if (ivaM) {
     const pct = parseInt(ivaM[1]);
-    if ([4,10,21].includes(pct)) qEl('f-iva-pct').value = pct;
-    calcBase();
+    if ([4,10,21].includes(pct)) { qEl('f-iva-pct').value = pct; calcBase(); }
   }
 
-  // Fecha
-  const fechaM = /(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})/.exec(text);
-  if (fechaM && !qEl('f-fecha-doc').value) {
+  // ── 3. Fecha — priorizar campo etiquetado "FECHA"
+  const fechaLabeled = /(?:FECHA|DATE)[:\s]*(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/i.exec(text);
+  const fechaPlain   = /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/.exec(text);
+  const fechaM       = fechaLabeled || fechaPlain;
+  if (fechaM) {
     const [,d,mo,y] = fechaM;
     const year = y.length===2 ? '20'+y : y;
-    qEl('f-fecha-doc').value = `${year}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    if (parseInt(year) >= 2020 && parseInt(year) <= 2030) {
+      qEl('f-fecha-doc').value = `${year}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    }
   }
 
-  // Número de documento
-  const numM = /(?:factura|albaran|albarán|fra|alb)[\.:\s#n°nº\s]*([A-Z0-9\/\-]{3,20})/i.exec(text);
+  // ── 4. Número de documento — solo si hay etiqueta explícita, con word boundary
+  const numM = /(?:N[°º]?\s*(?:ALBAR[AÁ]N|FACTURA)|FACTURA\s*N[°º]?|ALBAR[AÁ]N\s*N[°º]?)\s*[:\-]?\s*([A-Z0-9][A-Z0-9\/\-]{2,19})/i.exec(text);
   if (numM && !qEl('f-num').value) qEl('f-num').value = numM[1].trim();
 
-  // Proveedor: buscar en las primeras 4 líneas, match con conocidos o usar primera línea
-  const topLines = lines.slice(0,6).join(' ').toUpperCase();
+  // ── 5. Proveedor — solo palabras únicas y no genéricas
+  // Buscar en todo el texto (no solo primeras líneas) para mayor cobertura
+  const textUpper = text.toUpperCase();
   let foundProv = '';
+
   for (const p of getKnownProviders()) {
-    const words = p.split(' ').filter(w=>w.length>3);
-    if (words.some(w => topLines.includes(w.toUpperCase()))) { foundProv = p; break; }
+    // Extraer solo palabras significativas del nombre del proveedor
+    const sigWords = p.toUpperCase().split(/\s+/)
+      .filter(w => w.length >= 5 && !PROV_STOP_WORDS.has(w));
+    if (sigWords.length === 0) continue;
+    // Requiere que AL MENOS la primera palabra significativa aparezca como palabra completa
+    const mainWord = sigWords[0];
+    const wordRe = new RegExp('\\b' + mainWord + '\\b');
+    if (wordRe.test(textUpper)) { foundProv = p; break; }
   }
-  if (!foundProv && lines[0] && lines[0].length > 3) foundProv = lines[0];
+
+  // Fallback: primera línea del documento (zona de cabecera del emisor)
+  if (!foundProv) {
+    // Buscar el nombre en zona de cabecera (antes de la tabla de productos)
+    const headerLines = lines.slice(0, 4);
+    for (const l of headerLines) {
+      if (l.length > 4 && !/^\d/.test(l) && !/^(ALBAR|FACTUR|N[°º]|C\.I\.F|CIF|NIF|FECHA)/i.test(l)) {
+        foundProv = l; break;
+      }
+    }
+  }
+
   if (foundProv && !qEl('f-proveedor').value) {
     qEl('f-proveedor').value = foundProv;
-    autoFillProveedorFull(foundProv); // auto-fill cat/iva/pago si es proveedor conocido
+    autoFillProveedorFull(foundProv);
   }
 
-  // Tipo: detectar albarán vs factura
+  // ── 6. Tipo: detectar albarán vs factura
   if (/albar[aá]n/i.test(text)) qEl('f-tipo').value = 'albaran';
 
-  // Forma de pago
-  if (/cr[eé]dito|plazo|\d+\s*d[ií]as/i.test(text)) qEl('f-forma-pago').value = 'credito';
-  else if (/transferencia|transf/i.test(text))        qEl('f-forma-pago').value = 'transferencia';
+  // ── 7. Forma de pago
+  if (/pendiente|cr[eé]dito|plazo|\d+\s*d[ií]as/i.test(text)) qEl('f-forma-pago').value = 'credito';
+  else if (/transferencia|transf/i.test(text))                  qEl('f-forma-pago').value = 'transferencia';
+
+  toggleVencimiento();
 }
 
 // ── SAVE FACTURA ──────────────────────────────────────
@@ -2910,6 +3199,14 @@ async function submitFactura() {
       impactos.push(`CMV de ${monthLabel(mesKey)} actualizado (+${fmt(base||total)})`);
     }
 
+    // 4. Actualizar precios de ingredientes (Food Cost) — abre modal de matching
+    const impFC = qEl('f-imp-fc')?.checked;
+    let abrirFCMatch = false;
+    if (impFC && (cat==='mercaderia'||cat==='bebidas')) {
+      abrirFCMatch = true;
+      impactos.push('Abrir matching ingredientes Food Cost');
+    }
+
     toast('Guardado ✓' + (impactos.length ? ' · ' + impactos.length + ' impacto(s) aplicados' : ''));
     if (impactos.length) {
       setTimeout(() => toast(impactos.join(' | '), 'info'), 2000);
@@ -2919,6 +3216,10 @@ async function submitFactura() {
     qEl('f-ocr-progress').style.display   = 'none';
     _currentImgData = null;
     await refreshFacturas();
+
+    if (abrirFCMatch) {
+      setTimeout(() => openFCMatchPanel(savedId, proveedor, fechaDoc, ocrRaw), 600);
+    }
 
   } catch(e) {
     toast('Error: ' + e.message, 'err');
@@ -3133,72 +3434,78 @@ function showGmailSetupInfo() {
 }
 
 // ── MÓDULO 6 — PASIVO DE PROVEEDORES (DEUDA)
+// v3 = corte 24.05.2026 (documento M15)
+const DEUDA_SEED_VERSION = 3;
 // ═══════════════════════════════════════════════════════
 
-// Datos semilla del deuda_setup.csv al 31.03.2026
+// Datos semilla corte 24.05.2026 — documento M15 Alejandro
 const DEUDA_SEED = [
-  {id:'PROV-001',categoria:'PROVEEDORES',concepto:'FRUITES SELECTES TORRENT SL.',urgencia:'DILATADO',importe_original:13044.92,en_plan:true,nota:'Posibilidad de plan de pago'},
-  {id:'PROV-002',categoria:'PROVEEDORES',concepto:'Enuve (La Finca)',urgencia:'NECESARIO',importe_original:6217.35,en_plan:true,nota:'Posibilidad de plan de pago'},
-  {id:'PROV-003',categoria:'PROVEEDORES',concepto:'Makro Distribución',urgencia:'NECESARIO',importe_original:2432.77,en_plan:false,nota:''},
-  {id:'PROV-004',categoria:'PROVEEDORES',concepto:'LAFUENTE LORENZO SA',urgencia:'NECESARIO',importe_original:2093.29,en_plan:true,nota:'Posibilidad de plan de pago'},
-  {id:'PROV-005',categoria:'PROVEEDORES',concepto:'THE MALBEC HOUSE SL',urgencia:'NECESARIO',importe_original:2046.26,en_plan:false,nota:''},
-  {id:'PROV-006',categoria:'PROVEEDORES',concepto:'ATLANTIC FINANCE SOLUTIONS SL',urgencia:'DILATADO',importe_original:1404.81,en_plan:false,nota:''},
-  {id:'PROV-007',categoria:'PROVEEDORES',concepto:'ASSOLIM ALIMENTARIA SL',urgencia:'DILATADO',importe_original:1352.52,en_plan:true,nota:'Posibilidad de plan de pago'},
-  {id:'PROV-008',categoria:'PROVEEDORES',concepto:'DE BLAS SERRANO SL',urgencia:'NECESARIO',importe_original:1254.10,en_plan:true,nota:'Posibilidad de plan de pago'},
-  {id:'PROV-009',categoria:'PROVEEDORES',concepto:'TEXIA SEAMLESS S.L. (Papelera)',urgencia:'NECESARIO',importe_original:1215.62,en_plan:false,nota:''},
-  {id:'PROV-010',categoria:'PROVEEDORES',concepto:'MANUFACTURAS CATOR SL',urgencia:'DILATADO',importe_original:1198.92,en_plan:true,nota:'Posibilidad de plan de pago'},
-  {id:'PROV-011',categoria:'PROVEEDORES',concepto:'QUALITY ICE 1988 S.L.',urgencia:'NECESARIO',importe_original:1180.58,en_plan:false,nota:''},
-  {id:'PROV-012',categoria:'PROVEEDORES',concepto:'WINEISSOCIAL SL.',urgencia:'EVITABLE',importe_original:931.37,en_plan:false,nota:'Disputar / negociar'},
-  {id:'PROV-013',categoria:'PROVEEDORES',concepto:'LLENYES I CARBONS POLINYA SLU',urgencia:'DILATADO',importe_original:847.00,en_plan:true,nota:'Posibilidad de plan de pago'},
+  // ── PROVEEDORES ──────────────────────────────────────────
+  {id:'PROV-001',categoria:'PROVEEDORES',concepto:'FRUITES SELECTES TORRENT SL.',urgencia:'DILATADO',importe_original:10017.20,en_plan:true,nota:'Plan de pagos. Quita -€3.000 aplicada (negoc. Felipe)'},
+  {id:'PROV-002',categoria:'PROVEEDORES',concepto:'Enuve (La Finca)',urgencia:'NECESARIO',importe_original:6217.35,en_plan:true,nota:'Plan: €650 único + 18 cuotas x €309,30'},
+  {id:'PROV-003',categoria:'PROVEEDORES',concepto:'Makro Distribución',urgencia:'NECESARIO',importe_original:2432.77,en_plan:true,nota:'Pago único €2.432,77'},
+  {id:'PROV-004',categoria:'PROVEEDORES',concepto:'THE MALBEC HOUSE SL',urgencia:'NECESARIO',importe_original:2148.48,en_plan:true,nota:'Plan de pagos'},
+  {id:'PROV-005',categoria:'PROVEEDORES',concepto:'LAFUENTE LORENZO SA',urgencia:'NECESARIO',importe_original:1546.37,en_plan:true,nota:'Plan de pagos'},
+  {id:'PROV-006',categoria:'PROVEEDORES',concepto:'ATLANTIC FINANCE SOLUTIONS SL',urgencia:'DILATADO',importe_original:1404.81,en_plan:true,nota:'Plan: 9 cuotas x €156,09'},
+  {id:'PROV-007',categoria:'PROVEEDORES',concepto:'DE BLAS SERRANO SL',urgencia:'NECESARIO',importe_original:1367.60,en_plan:true,nota:'Plan de pagos'},
+  {id:'PROV-008',categoria:'PROVEEDORES',concepto:'ASSOLIM ALIMENTARIA SL',urgencia:'DILATADO',importe_original:1352.52,en_plan:true,nota:'Plan: 9 cuotas x €150,28'},
+  {id:'PROV-009',categoria:'PROVEEDORES',concepto:'TEXIA SEAMLESS S.L. (Papelera)',urgencia:'NECESARIO',importe_original:1215.62,en_plan:true,nota:'Pago único €1.215,62'},
+  {id:'PROV-010',categoria:'PROVEEDORES',concepto:'MANUFACTURAS CATOR SL',urgencia:'DILATADO',importe_original:1198.92,en_plan:true,nota:'Plan de pagos'},
+  {id:'PROV-011',categoria:'PROVEEDORES',concepto:'QUALITY ICE 1988 S.L.',urgencia:'NECESARIO',importe_original:1238.57,en_plan:true,nota:'Plan de pagos. 6 cuotas x €206'},
+  {id:'PROV-012',categoria:'PROVEEDORES',concepto:'WINEISSOCIAL SL.',urgencia:'EVITABLE',importe_original:931.37,en_plan:false,nota:'Posible disputa / negociar quita'},
+  {id:'PROV-013',categoria:'PROVEEDORES',concepto:'LLENYES I CARBONS POLINYA SLU',urgencia:'DILATADO',importe_original:847.00,en_plan:true,nota:'Plan de pagos'},
   {id:'PROV-014',categoria:'PROVEEDORES',concepto:'SMART WATER SL.',urgencia:'NECESARIO',importe_original:747.78,en_plan:false,nota:''},
-  {id:'PROV-015',categoria:'PROVEEDORES',concepto:'CAN RAMOS 2 SL',urgencia:'NECESARIO',importe_original:732.14,en_plan:false,nota:''},
-  {id:'PROV-016',categoria:'PROVEEDORES',concepto:'COCA-COLA EUROPACIFIC',urgencia:'NECESARIO',importe_original:699.47,en_plan:false,nota:''},
-  {id:'PROV-017',categoria:'PROVEEDORES',concepto:'NEGOCIANTS SLU',urgencia:'NECESARIO',importe_original:693.30,en_plan:false,nota:''},
-  {id:'PROV-018',categoria:'PROVEEDORES',concepto:'MASSAL SELECTION S.L.',urgencia:'DILATADO',importe_original:635.44,en_plan:false,nota:''},
-  {id:'PROV-019',categoria:'PROVEEDORES',concepto:'PEIXOS J ARROM SL',urgencia:'DILATADO',importe_original:533.51,en_plan:false,nota:''},
-  {id:'PROV-020',categoria:'PROVEEDORES',concepto:'MONTSERRAT FORNERS 1894 SL',urgencia:'DILATADO',importe_original:500.00,en_plan:false,nota:''},
-  {id:'PROV-021',categoria:'PROVEEDORES',concepto:'Carnia',urgencia:'DILATADO',importe_original:487.52,en_plan:false,nota:''},
-  {id:'PROV-022',categoria:'PROVEEDORES',concepto:'LA VIGILIA LOGISTIC SLU',urgencia:'NECESARIO',importe_original:386.76,en_plan:false,nota:''},
-  {id:'PROV-023',categoria:'PROVEEDORES',concepto:'DISTRIBUCIO PRIMERA QUALITAT SL',urgencia:'DILATADO',importe_original:369.85,en_plan:false,nota:''},
-  {id:'PROV-024',categoria:'PROVEEDORES',concepto:'SINGLE TASTE SL',urgencia:'NECESARIO',importe_original:322.34,en_plan:false,nota:''},
-  {id:'PROV-025',categoria:'PROVEEDORES',concepto:'COMERCIAL ESCOLA SL',urgencia:'NECESARIO',importe_original:277.81,en_plan:false,nota:''},
-  {id:'PROV-026',categoria:'PROVEEDORES',concepto:'GAUCHO & BOINA SL',urgencia:'DILATADO',importe_original:255.62,en_plan:false,nota:''},
-  {id:'PROV-027',categoria:'PROVEEDORES',concepto:'GRUPO EMPRESARIAL MAGOASE SL',urgencia:'NECESARIO',importe_original:229.48,en_plan:false,nota:''},
-  {id:'PROV-028',categoria:'PROVEEDORES',concepto:'Kiku S.L.U.',urgencia:'DILATADO',importe_original:184.52,en_plan:false,nota:''},
-  {id:'PROV-029',categoria:'PROVEEDORES',concepto:'TORNADO COFFEE ROASTERS SL',urgencia:'DILATADO',importe_original:169.28,en_plan:false,nota:''},
-  {id:'PROV-030',categoria:'PROVEEDORES',concepto:'AGUAVIDA LLOPS SL',urgencia:'NECESARIO',importe_original:159.72,en_plan:false,nota:''},
-  {id:'PROV-031',categoria:'PROVEEDORES',concepto:'DISTRIBUCIONES BARNA SA',urgencia:'NECESARIO',importe_original:156.99,en_plan:false,nota:''},
-  {id:'PROV-032',categoria:'PROVEEDORES',concepto:'IMPORTADORA EXAL DE ALIMENTOS SL',urgencia:'DILATADO',importe_original:149.93,en_plan:false,nota:''},
-  {id:'PROV-033',categoria:'PROVEEDORES',concepto:'CALIDOSCOPI VINS SL',urgencia:'NECESARIO',importe_original:148.89,en_plan:false,nota:''},
-  {id:'PROV-034',categoria:'PROVEEDORES',concepto:'Rooftop Smokehouse S.L.',urgencia:'NECESARIO',importe_original:143.00,en_plan:false,nota:''},
-  {id:'PROV-035',categoria:'PROVEEDORES',concepto:'SOULBLIM S.L. (GROUP FRUCTUS)',urgencia:'DILATADO',importe_original:141.09,en_plan:false,nota:''},
-  {id:'PROV-036',categoria:'PROVEEDORES',concepto:'LA BODEGUILLA S.L.',urgencia:'DILATADO',importe_original:123.78,en_plan:false,nota:''},
-  {id:'PROV-037',categoria:'PROVEEDORES',concepto:'WINE O\'CLOCK IMPORTACIONES S.L.',urgencia:'EVITABLE',importe_original:80.01,en_plan:false,nota:'Disputar / negociar'},
-  {id:'PROV-038',categoria:'PROVEEDORES',concepto:'ULTRAPLUS MAXIMEGA S.L.',urgencia:'DILATADO',importe_original:66.96,en_plan:false,nota:''},
-  {id:'PROV-039',categoria:'PROVEEDORES',concepto:'EMCADI SA',urgencia:'NECESARIO',importe_original:41.20,en_plan:false,nota:''},
+  {id:'PROV-015',categoria:'PROVEEDORES',concepto:'COCA-COLA EUROPACIFIC',urgencia:'NECESARIO',importe_original:964.71,en_plan:true,nota:'Plan: €230,57 único + plan resto'},
+  {id:'PROV-016',categoria:'PROVEEDORES',concepto:'CHACACITY SL',urgencia:'NECESARIO',importe_original:1857.96,en_plan:true,nota:'Plan: €839,12 único + €1.018,84 plan'},
+  {id:'PROV-017',categoria:'PROVEEDORES',concepto:'NEGOCIANTS SLU',urgencia:'NECESARIO',importe_original:693.30,en_plan:true,nota:'Pago único €693,30'},
+  {id:'PROV-018',categoria:'PROVEEDORES',concepto:'MASSAL SELECTION S.L.',urgencia:'DILATADO',importe_original:635.44,en_plan:true,nota:'Plan de pagos'},
+  {id:'PROV-019',categoria:'PROVEEDORES',concepto:'PEIXOS J ARROM SL',urgencia:'DILATADO',importe_original:533.51,en_plan:true,nota:'Plan de pagos'},
+  {id:'PROV-020',categoria:'PROVEEDORES',concepto:'MONTSERRAT FORNERS 1894 SL',urgencia:'DILATADO',importe_original:500.00,en_plan:true,nota:'Pago único €500'},
+  {id:'PROV-021',categoria:'PROVEEDORES',concepto:'Carnia',urgencia:'DILATADO',importe_original:487.52,en_plan:true,nota:'Plan: 5 cuotas x €97,50'},
+  {id:'PROV-022',categoria:'PROVEEDORES',concepto:'LA VIGILIA LOGISTIC SLU',urgencia:'NECESARIO',importe_original:347.12,en_plan:true,nota:'Pago único €347,12'},
+  {id:'PROV-023',categoria:'PROVEEDORES',concepto:'DISTRIBUCIO PRIMERA QUALITAT SL',urgencia:'DILATADO',importe_original:219.85,en_plan:true,nota:'Pago único €219,85'},
+  {id:'PROV-024',categoria:'PROVEEDORES',concepto:'COMERCIAL ESCOLA SL',urgencia:'NECESARIO',importe_original:277.81,en_plan:true,nota:'Pago único €277,81'},
+  {id:'PROV-025',categoria:'PROVEEDORES',concepto:'GAUCHO & BOINA SL',urgencia:'DILATADO',importe_original:255.62,en_plan:true,nota:'Pago único €255,62'},
+  {id:'PROV-026',categoria:'PROVEEDORES',concepto:'Kiku S.L.U.',urgencia:'DILATADO',importe_original:184.52,en_plan:true,nota:'Pago único €184,52'},
+  {id:'PROV-027',categoria:'PROVEEDORES',concepto:'TORNADO COFFEE ROASTERS SL',urgencia:'EVITABLE',importe_original:169.28,en_plan:false,nota:'Revisar — posible disputa doble factura'},
+  {id:'PROV-028',categoria:'PROVEEDORES',concepto:'AGUAVIDA LLOPS SL',urgencia:'NECESARIO',importe_original:159.72,en_plan:true,nota:'Pago único €159,72'},
+  {id:'PROV-029',categoria:'PROVEEDORES',concepto:'IMPORTADORA EXAL DE ALIMENTOS SL',urgencia:'DILATADO',importe_original:149.93,en_plan:true,nota:'Pago único €149,93'},
+  {id:'PROV-030',categoria:'PROVEEDORES',concepto:'CALIDOSCOPI VINS SL',urgencia:'NECESARIO',importe_original:148.89,en_plan:true,nota:'Pago único €148,89'},
+  {id:'PROV-031',categoria:'PROVEEDORES',concepto:'SOULBLIM S.L. (GROUP FRUCTUS)',urgencia:'DILATADO',importe_original:141.09,en_plan:true,nota:'Pago único €141,09'},
+  {id:'PROV-032',categoria:'PROVEEDORES',concepto:'MAMMAFIORE BARCELONA SL',urgencia:'NECESARIO',importe_original:153.30,en_plan:true,nota:'Pago único €153,30'},
+  {id:'PROV-033',categoria:'PROVEEDORES',concepto:'PROMAN FRUITS SL',urgencia:'NECESARIO',importe_original:347.33,en_plan:true,nota:'Pago único €347,33 (pagó €380 el 19/05)'},
+  {id:'PROV-034',categoria:'PROVEEDORES',concepto:'WINE O\'CLOCK IMPORTACIONES S.L.',urgencia:'EVITABLE',importe_original:80.01,en_plan:false,nota:'Disputar / negociar'},
+  {id:'PROV-035',categoria:'PROVEEDORES',concepto:'ULTRAPLUS MAXIMEGA S.L.',urgencia:'DILATADO',importe_original:66.96,en_plan:true,nota:'Pago único €66,96'},
+  {id:'PROV-036',categoria:'PROVEEDORES',concepto:'Entrecortes (Nueve Reinas)',urgencia:'NECESARIO',importe_original:0,en_plan:false,nota:'Proveedor carnes premium — albaranes regulares'},
+  // ── NÓMINAS ──────────────────────────────────────────────
   {id:'NOM-001',categoria:'NOMINAS',concepto:'Nóminas adeudadas Febrero 2026',urgencia:'NECESARIO',importe_original:4957.00,en_plan:false,nota:''},
   {id:'NOM-002',categoria:'NOMINAS',concepto:'Nóminas adeudadas Marzo 2026',urgencia:'NECESARIO',importe_original:7897.00,en_plan:false,nota:''},
-  {id:'NOM-003',categoria:'NOMINAS',concepto:'Nóminas en curso Abril 2026',urgencia:'NECESARIO',importe_original:11275.00,en_plan:false,nota:''},
-  {id:'BAN-001',categoria:'BANCARIO',concepto:'Pago Ágil Santander (por cancelar)',urgencia:'NECESARIO',importe_original:7649.00,en_plan:false,nota:''},
-  {id:'BAN-002',categoria:'BANCARIO',concepto:'Tarjeta de Crédito BBVA',urgencia:'NECESARIO',importe_original:1550.00,en_plan:false,nota:''},
-  {id:'FIJ-001',categoria:'COSTOS_FIJOS',concepto:'Costos fijos adeudados Enero 2026',urgencia:'NECESARIO',importe_original:1155.50,en_plan:false,nota:''},
-  {id:'FIJ-002',categoria:'COSTOS_FIJOS',concepto:'Costos fijos adeudados Febrero 2026',urgencia:'NECESARIO',importe_original:2237.00,en_plan:false,nota:''},
-  {id:'FIJ-003',categoria:'COSTOS_FIJOS',concepto:'Costos fijos adeudados Marzo 2026',urgencia:'NECESARIO',importe_original:10591.00,en_plan:false,nota:''},
+  {id:'NOM-003',categoria:'NOMINAS',concepto:'Nóminas adeudadas Abril 2026',urgencia:'NECESARIO',importe_original:8705.00,en_plan:false,nota:''},
+  {id:'NOM-004',categoria:'NOMINAS',concepto:'Nóminas en curso Mayo 2026',urgencia:'NECESARIO',importe_original:8263.00,en_plan:false,nota:'En proceso'},
+  // ── BANCARIO ─────────────────────────────────────────────
+  {id:'BAN-001',categoria:'BANCARIO',concepto:'Pago Ágil Santander (por cancelar)',urgencia:'NECESARIO',importe_original:7649.00,en_plan:false,nota:'AL PAGARLO SE RECUPERA LA LÍNEA — prioridad alta'},
+  {id:'BAN-002',categoria:'BANCARIO',concepto:'Tarjeta de Crédito BBVA',urgencia:'NECESARIO',importe_original:1700.00,en_plan:false,nota:'Financiación'},
+  // ── COSTOS FIJOS ─────────────────────────────────────────
+  {id:'FIJ-001',categoria:'COSTOS_FIJOS',concepto:'Costos fijos adeudados Enero 2026',urgencia:'NECESARIO',importe_original:1161.00,en_plan:true,nota:'Plan posible: €95 único + 12x €88,83 (Naturgy)'},
+  {id:'FIJ-002',categoria:'COSTOS_FIJOS',concepto:'Costos fijos adeudados Febrero 2026',urgencia:'NECESARIO',importe_original:2179.00,en_plan:true,nota:'Plan posible: €964 único + 12x €101,25 (Naturgy)'},
+  {id:'FIJ-003',categoria:'COSTOS_FIJOS',concepto:'Costos fijos adeudados Marzo 2026',urgencia:'NECESARIO',importe_original:4550.00,en_plan:true,nota:'Plan: €3.533 único + 12x €84,75'},
+  {id:'FIJ-004',categoria:'COSTOS_FIJOS',concepto:'Costos fijos adeudados Abril 2026',urgencia:'NECESARIO',importe_original:4228.00,en_plan:true,nota:'Plan posible: €3.330 único + 12x €74,83 (Tasa anual Ayunt.)'},
+  {id:'FIJ-005',categoria:'COSTOS_FIJOS',concepto:'Costos fijos adeudados Mayo 2026',urgencia:'NECESARIO',importe_original:9939.00,en_plan:false,nota:''},
+  // ── PERSONAL ─────────────────────────────────────────────
   {id:'PER-001',categoria:'PERSONAL',concepto:'Propinas totales adeudadas',urgencia:'NECESARIO',importe_original:1544.00,en_plan:false,nota:''},
-  {id:'PER-002',categoria:'PERSONAL',concepto:'Comisiones Mateo (Brunch)',urgencia:'NECESARIO',importe_original:300.00,en_plan:false,nota:''},
-  {id:'PER-003',categoria:'PERSONAL',concepto:'Comisiones Indra',urgencia:'NECESARIO',importe_original:145.00,en_plan:false,nota:''},
-  {id:'PER-004',categoria:'PERSONAL',concepto:'EZSA',urgencia:'NECESARIO',importe_original:585.00,en_plan:false,nota:''},
-  {id:'PER-005',categoria:'PERSONAL',concepto:'Limpieza de Campanas',urgencia:'NECESARIO',importe_original:650.00,en_plan:false,nota:''},
-  {id:'PER-006',categoria:'PERSONAL',concepto:'José Mantenimiento',urgencia:'NECESARIO',importe_original:278.00,en_plan:false,nota:''},
-  {id:'PER-007',categoria:'PERSONAL',concepto:'Katty Limpieza',urgencia:'NECESARIO',importe_original:465.00,en_plan:false,nota:''},
-  {id:'PER-008',categoria:'PERSONAL',concepto:'Saldo Pablo (micro-préstamo)',urgencia:'NECESARIO',importe_original:1000.00,en_plan:false,nota:''},
-  {id:'FIS-001',categoria:'FISCAL',concepto:'Impuesto anual Ajuntament (terraza)',urgencia:'DILATADO',importe_original:898.00,en_plan:false,nota:''},
-  {id:'OTR-001',categoria:'OTROS',concepto:'Ligoña Abogados',urgencia:'DILATADO',importe_original:1000.00,en_plan:false,nota:''},
-  {id:'OTR-002',categoria:'OTROS',concepto:'Peter Solvit',urgencia:'DILATADO',importe_original:5867.00,en_plan:false,nota:''},
+  {id:'PER-002',categoria:'PERSONAL',concepto:'EZSA',urgencia:'NECESARIO',importe_original:585.00,en_plan:false,nota:''},
+  {id:'PER-003',categoria:'PERSONAL',concepto:'Limpieza de Campanas',urgencia:'NECESARIO',importe_original:650.00,en_plan:false,nota:''},
+  {id:'PER-004',categoria:'PERSONAL',concepto:'José Mantenimiento',urgencia:'NECESARIO',importe_original:278.00,en_plan:false,nota:''},
+  {id:'PER-005',categoria:'PERSONAL',concepto:'Katty Limpieza',urgencia:'NECESARIO',importe_original:590.00,en_plan:false,nota:''},
+  {id:'PER-006',categoria:'PERSONAL',concepto:'Saldo Pablo (micro-préstamo)',urgencia:'NECESARIO',importe_original:4000.00,en_plan:false,nota:'A pagar con desembolso agosto'},
+  // ── OTROS ────────────────────────────────────────────────
+  {id:'OTR-001',categoria:'OTROS',concepto:'Ligoña Abogados',urgencia:'DILATADO',importe_original:1000.00,en_plan:true,nota:'Plan posible: 12 cuotas x €83,33'},
+  {id:'OTR-002',categoria:'OTROS',concepto:'Peter Solvit',urgencia:'DILATADO',importe_original:5867.00,en_plan:true,nota:'A pagar con desembolso de agosto'},
   {id:'OTR-003',categoria:'OTROS',concepto:'Scalapay',urgencia:'NECESARIO',importe_original:262.00,en_plan:false,nota:''},
   {id:'OTR-004',categoria:'OTROS',concepto:'Glovo App',urgencia:'NECESARIO',importe_original:183.00,en_plan:false,nota:''},
-  {id:'OTR-005',categoria:'OTROS',concepto:'LoomisPlay',urgencia:'NECESARIO',importe_original:410.00,en_plan:false,nota:''},
-  {id:'OTR-006',categoria:'OTROS',concepto:'AXA (posible reclamo)',urgencia:'DILATADO',importe_original:605.00,en_plan:false,nota:'Posible disputa con aseguradora'},
+  {id:'OTR-005',categoria:'OTROS',concepto:'LoomisP ay (fuera de calendario)',urgencia:'NECESARIO',importe_original:166.80,en_plan:false,nota:''},
+  {id:'OTR-006',categoria:'OTROS',concepto:'AXA (posible reclamo a pagar)',urgencia:'EVITABLE',importe_original:605.00,en_plan:false,nota:'Posible disputa con aseguradora'},
+  {id:'OTR-007',categoria:'OTROS',concepto:'Pago Notaría (trámite)',urgencia:'NECESARIO',importe_original:800.00,en_plan:false,nota:''},
 ];
 
 // ── VENTAS SEED — datos reales Ene–May 2026 desde Google Sheet ─────
@@ -3340,6 +3647,48 @@ const ESCANDALLOS_SEED = [
   {nombre:'Chocotorta',                  categoria:'Dulces',       precio_venta:9.0,  costo_total:1.82, ventas_mes:50,  activo:true, descripcion:'Nuestra versión'},
 ];
 
+// ── INGREDIENTES SEED — precios reales albarán 29/05/2026 ───
+const INGREDIENTES_SEED = [
+  // CARNES (precios del albarán 29/05)
+  {nombre:'Vacío Angus',                categoria:'Carne',           unidad:'kg', precio:26.95, merma:10, proveedor:'Can Ramos'},
+  {nombre:'Entraña',                    categoria:'Carne',           unidad:'kg', precio:15.94, merma:30, proveedor:'Can Ramos'},
+  {nombre:'Lomo bajo / Bife de chorizo',categoria:'Carne',           unidad:'kg', precio:28.25, merma:20, proveedor:'Can Ramos'},
+  {nombre:'Mollejas de corazón',        categoria:'Carne',           unidad:'kg', precio:24.16, merma:45, proveedor:'Can Ramos'},
+  {nombre:'Carne Angus milanesa',       categoria:'Carne',           unidad:'kg', precio:20.90, merma:15, proveedor:'Can Ramos'},
+  {nombre:'Secreto ibérico',            categoria:'Carne',           unidad:'kg', precio:14.90, merma:15, proveedor:'Can Ramos'},
+  // VEGETALES
+  {nombre:'Pimiento rojo',              categoria:'Vegetal',         unidad:'kg', precio:11.90, merma:5,  proveedor:''},
+  {nombre:'Berenjena',                  categoria:'Vegetal',         unidad:'kg', precio:2.20,  merma:8,  proveedor:''},
+  {nombre:'Calabacín',                  categoria:'Vegetal',         unidad:'kg', precio:2.50,  merma:5,  proveedor:''},
+  {nombre:'Ajo',                        categoria:'Vegetal',         unidad:'kg', precio:7.34,  merma:5,  proveedor:''},
+  {nombre:'Limón',                      categoria:'Vegetal',         unidad:'kg', precio:1.56,  merma:0,  proveedor:''},
+  {nombre:'Cebolla blanca',             categoria:'Vegetal',         unidad:'kg', precio:1.03,  merma:5,  proveedor:''},
+  {nombre:'Boniato',                    categoria:'Vegetal',         unidad:'kg', precio:2.29,  merma:5,  proveedor:''},
+  {nombre:'Apionabo',                   categoria:'Vegetal',         unidad:'kg', precio:6.13,  merma:10, proveedor:''},
+  {nombre:'Col blanca',                 categoria:'Vegetal',         unidad:'kg', precio:1.20,  merma:5,  proveedor:''},
+  {nombre:'Zanahoria',                  categoria:'Vegetal',         unidad:'kg', precio:1.10,  merma:5,  proveedor:''},
+  {nombre:'Tomate',                     categoria:'Vegetal',         unidad:'kg', precio:8.00,  merma:5,  proveedor:''},
+  // LÁCTEOS
+  {nombre:'Mozzarella',                 categoria:'Lácteo',          unidad:'kg', precio:15.30, merma:0,  proveedor:''},
+  {nombre:'Provolone',                  categoria:'Lácteo',          unidad:'kg', precio:15.30, merma:0,  proveedor:''},
+  {nombre:'Jamón cocido',               categoria:'Lácteo',          unidad:'kg', precio:10.80, merma:0,  proveedor:''},
+  // SECOS / CEREALES
+  {nombre:'Panko',                      categoria:'Seco / Cereal',   unidad:'kg', precio:5.23,  merma:0,  proveedor:''},
+  {nombre:'Huevada (mezcla huevo)',     categoria:'Seco / Cereal',   unidad:'un', precio:0.25,  merma:0,  proveedor:''},
+  // SALSAS / ADEREZOS
+  {nombre:'Chimichurri reposado',       categoria:'Salsa / Aderezo', unidad:'kg', precio:3.64,  merma:0,  proveedor:''},
+  {nombre:'Salsa criolla',              categoria:'Salsa / Aderezo', unidad:'kg', precio:4.50,  merma:0,  proveedor:''},
+  {nombre:'Aceite oliva',               categoria:'Salsa / Aderezo', unidad:'lt', precio:2.92,  merma:0,  proveedor:''},
+  {nombre:'Aceite picante Chilli Oil',  categoria:'Salsa / Aderezo', unidad:'lt', precio:4.56,  merma:0,  proveedor:''},
+  {nombre:'Sal maldon',                 categoria:'Salsa / Aderezo', unidad:'kg', precio:14.60, merma:0,  proveedor:''},
+  {nombre:'Sal y pimienta',             categoria:'Salsa / Aderezo', unidad:'kg', precio:5.00,  merma:0,  proveedor:''},
+  {nombre:'Mayonesa',                   categoria:'Salsa / Aderezo', unidad:'kg', precio:4.50,  merma:0,  proveedor:''},
+  {nombre:'Vinagre / Limón coleslaw',   categoria:'Salsa / Aderezo', unidad:'lt', precio:1.50,  merma:0,  proveedor:''},
+  {nombre:'Salsa tomate',               categoria:'Salsa / Aderezo', unidad:'kg', precio:3.50,  merma:0,  proveedor:''},
+  {nombre:'Miel',                       categoria:'Salsa / Aderezo', unidad:'kg', precio:6.38,  merma:0,  proveedor:''},
+  {nombre:'Pesto rojo',                 categoria:'Salsa / Aderezo', unidad:'kg', precio:11.29, merma:0,  proveedor:''},
+];
+
 const DEUDA_FILTER = { cat:'ALL', urg:'ALL' };
 
 const CAT_ICONS_DEUDA = {
@@ -3350,9 +3699,28 @@ const URG_LABELS = { NECESARIO:'Necesario', DILATADO:'Dilatado', EVITABLE:'Evita
 const URG_CLS    = { NECESARIO:'urg-nec', DILATADO:'urg-dil', EVITABLE:'urg-evi' };
 
 async function seedDeuda() {
-  const existing = await dbGetAll('deuda');
-  if (existing.length > 0) return; // ya sembrado
-  for (const d of DEUDA_SEED) await dbPut('deuda', { ...d, pagado:0 });
+  const storedVer = parseInt(localStorage.getItem('deuda_seed_ver')||'0');
+  if (storedVer >= DEUDA_SEED_VERSION) return; // ya en versión actual
+  // Upsert seed items — preserva pagado_real vía deuda_pagos (no en este store)
+  for (const d of DEUDA_SEED) {
+    const ex = await dbGet('deuda', d.id);
+    // Si ya existe, actualiza sólo los campos del seed (no toca pagado manual)
+    if (ex) {
+      await dbPut('deuda', { ...ex, ...d });
+    } else {
+      await dbPut('deuda', { ...d, pagado:0 });
+    }
+  }
+  // Eliminar items del seed anterior que ya no existen en el nuevo
+  const allExisting = await dbGetAll('deuda');
+  const seedIds = new Set(DEUDA_SEED.map(d => d.id));
+  for (const ex of allExisting) {
+    if (ex.id.startsWith('PROV-') || ex.id.startsWith('NOM-') || ex.id.startsWith('BAN-') ||
+        ex.id.startsWith('FIJ-') || ex.id.startsWith('PER-') || ex.id.startsWith('FIS-') || ex.id.startsWith('OTR-')) {
+      if (!seedIds.has(ex.id)) await dbDelete('deuda', ex.id);
+    }
+  }
+  localStorage.setItem('deuda_seed_ver', String(DEUDA_SEED_VERSION));
 }
 
 async function refreshDeuda() {
@@ -3647,6 +4015,13 @@ async function syncToGSheet(payload) {
 
 let bcgChartInst   = null;
 let menuDataEnrich = []; // enriched cache for filter
+let _ingredientesCache = []; // cache para selects/cálculos
+let _menuSubtab = 'platos';
+let _editPlatoRecipe = []; // estado del editor de receta en panel
+
+// Configuración Food Cost target (editable desde UI futura)
+const FC_TARGET_MAX = 30; // techo crítico
+const FC_TARGET_OK  = 28; // ideal
 
 const CAT_COLORS_MENU = {
   'Para Empezar': '#f59e0b',
@@ -3682,29 +4057,101 @@ async function seedEscandallos() {
   }
 }
 
+async function seedIngredientes() {
+  const existing = await dbGetAll('ingredientes');
+  if (existing.length > 0) {
+    _ingredientesCache = existing;
+    return;
+  }
+  for (const i of INGREDIENTES_SEED) {
+    await dbAdd('ingredientes', { ...i, ts: Date.now() });
+  }
+  _ingredientesCache = await dbGetAll('ingredientes');
+}
+
+// Calcula costo de una receta a partir de su lista de ingredientes
+// recipe = [{ ing_id, cantidad, merma_override? }]
+function calcRecipeCost(recipe) {
+  if (!recipe || !recipe.length) return { cost: 0, breakdown: [] };
+  let cost = 0;
+  const breakdown = [];
+  for (const r of recipe) {
+    const ing = _ingredientesCache.find(i => i.id === r.ing_id);
+    if (!ing) continue;
+    const merma = (r.merma_override !== null && r.merma_override !== undefined && r.merma_override !== '')
+      ? Number(r.merma_override) : Number(ing.merma || 0);
+    const subt = Number(r.cantidad) * Number(ing.precio) * (1 + merma / 100);
+    cost += subt;
+    breakdown.push({ ing, cantidad: r.cantidad, merma, subt });
+  }
+  return { cost, breakdown };
+}
+
+// Devuelve el costo del plato: si tiene receta → calculado dinámico, sino → costo_total guardado
+function dishCost(dish) {
+  if (dish.recipe && dish.recipe.length) {
+    return calcRecipeCost(dish.recipe).cost;
+  }
+  return Number(dish.costo_total || 0);
+}
+
+function fmtPct(n) {
+  if (n === null || n === undefined || isNaN(n) || n === 0) return '—';
+  return n.toFixed(1) + '%';
+}
+
+function switchMenuSubtab(name) {
+  _menuSubtab = name;
+  document.querySelectorAll('.sub-tab').forEach(t => t.classList.toggle('active', t.dataset.stab === name));
+  document.querySelectorAll('.menu-subpanel').forEach(p => p.style.display = (p.id === 'msub-' + name) ? '' : 'none');
+  if (name === 'ingredientes') renderIngredientesList();
+  if (name === 'historico')    renderHistoricoList();
+  if (name === 'bcg')          { if (bcgChartInst) bcgChartInst.resize(); }
+}
+
 async function refreshMenu() {
+  // refrescar cache de ingredientes (precio puede haber cambiado por una factura)
+  _ingredientesCache = await dbGetAll('ingredientes');
+  setEl('m-fc-max-lbl', FC_TARGET_MAX);
+
   const all    = await dbGetAll('escandallos');
   const activos = all.filter(d => d.activo !== false);
   if (!activos.length) {
     document.getElementById('menu-tbody').innerHTML =
       '<tr><td colspan="10" style="text-align:center;color:var(--g400);padding:30px;">Sin platos. Añadí tu primer plato con ＋</td></tr>';
+    document.getElementById('m-alerts').style.display = 'none';
     return;
   }
 
+  // costo recalculado para cada plato (dinámico si tiene receta)
+  const costos = activos.map(d => dishCost(d));
+
   const totalUnits = activos.reduce((s,d) => s + (d.ventas_mes||0), 0);
   const pops       = activos.map(d => totalUnits > 0 ? ((d.ventas_mes||0)/totalUnits*100) : 0);
-  const margenes   = activos.map(d => (d.precio_venta||0) - (d.costo_total||0));
+  const margenes   = activos.map((d,i) => (d.precio_venta||0) - costos[i]);
   const medPop     = medianArr(pops);
   const medMargen  = medianArr(margenes);
 
-  menuDataEnrich = activos.map((d, i) => ({
-    ...d,
-    fc_pct:    d.costo_total && d.precio_venta ? (d.costo_total / d.precio_venta * 100) : null,
-    margen_eur: margenes[i],
-    pop_pct:   pops[i],
-    bcg:       calcBCG(pops[i], margenes[i], medPop, medMargen),
-    rev_mes:   (d.precio_venta||0) * (d.ventas_mes||0),
-  }));
+  menuDataEnrich = activos.map((d, i) => {
+    const costo = costos[i];
+    const pvp = d.precio_venta || 0;
+    const fc_pct = costo && pvp ? (costo / pvp * 100) : null;
+    const pvp_sugerido = costo ? costo / (FC_TARGET_MAX / 100) : null;
+    const pvp_ideal    = costo ? costo / (FC_TARGET_OK  / 100) : null;
+    return {
+      ...d,
+      costo_calc: costo,
+      tiene_receta: !!(d.recipe && d.recipe.length),
+      fc_pct,
+      margen_eur: margenes[i],
+      pop_pct:   pops[i],
+      bcg:       calcBCG(pops[i], margenes[i], medPop, medMargen),
+      rev_mes:   pvp * (d.ventas_mes||0),
+      pvp_sugerido,
+      pvp_ideal,
+      excede_fc: fc_pct != null && fc_pct > FC_TARGET_MAX,
+    };
+  });
 
   const withFC   = menuDataEnrich.filter(d => d.fc_pct != null);
   const avgFC    = withFC.length ? withFC.reduce((s,d) => s + d.fc_pct, 0) / withFC.length : 0;
@@ -3714,9 +4161,15 @@ async function refreshMenu() {
 
   setEl('m-total',  activos.length);
   const fcEl = document.getElementById('m-fc');
-  if (fcEl) { fcEl.textContent = avgFC.toFixed(1)+'%'; fcEl.style.color = avgFC>35?'var(--red)':avgFC<25?'var(--green)':''; }
+  if (fcEl) {
+    fcEl.textContent = avgFC.toFixed(1)+'%';
+    fcEl.style.color = avgFC>FC_TARGET_MAX?'var(--red)':avgFC<FC_TARGET_OK-3?'var(--green)':'var(--amber-d)';
+  }
   setEl('m-precio', '€'+avgPrecio.toFixed(2));
   setEl('m-margen', '€'+avgMargen.toFixed(2));
+
+  // Alertas globales FC > techo
+  renderMenuAlerts(menuDataEnrich.filter(d => d.excede_fc));
 
   renderBCGChart(menuDataEnrich, medPop, medMargen);
   renderParetoList(menuDataEnrich, totalRev);
@@ -3724,6 +4177,24 @@ async function refreshMenu() {
 
   const sub = document.getElementById('menu-table-sub');
   if (sub) sub.textContent = `${activos.length} platos · Rev/mes estimada €${totalRev.toFixed(0)} · FC prom ${avgFC.toFixed(1)}%`;
+}
+
+function renderMenuAlerts(alerts) {
+  const box = document.getElementById('m-alerts');
+  if (!box) return;
+  if (!alerts.length) { box.style.display = 'none'; return; }
+  box.style.display = '';
+  const items = alerts.slice(0, 5).map(d =>
+    `<li><strong>${d.nombre}</strong> está al ${d.fc_pct.toFixed(1)}% FC — sugerencia subir PVP a <strong>€${d.pvp_sugerido.toFixed(2)}</strong> para llegar al ${FC_TARGET_MAX}% (margen €${(d.pvp_sugerido - d.costo_calc).toFixed(2)})</li>`
+  ).join('');
+  const more = alerts.length > 5 ? `<li style="color:var(--g400);">y ${alerts.length-5} plato(s) más…</li>` : '';
+  box.innerHTML = `<div class="m-alert-box">
+    <div class="m-alert-icon">⚠️</div>
+    <div class="m-alert-content">
+      <strong>${alerts.length} plato${alerts.length>1?'s':''} supera${alerts.length>1?'n':''} el ${FC_TARGET_MAX}% de Food Cost.</strong>
+      <ul>${items}${more}</ul>
+    </div>
+  </div>`;
 }
 
 function renderBCGChart(enriched, medPop, medMargen) {
@@ -3827,21 +4298,39 @@ function renderMenuTable(dishes) {
     return;
   }
   tbody.innerHTML = dishes.map(d => {
-    const fc  = d.fc_pct != null ? d.fc_pct.toFixed(1) : '–';
-    const fcC = d.fc_pct != null ? (d.fc_pct>35?'color:var(--red);font-weight:700':d.fc_pct<25?'color:var(--green);font-weight:700':'') : '';
+    const fc      = d.fc_pct != null ? d.fc_pct.toFixed(1) : '–';
+    const fcBar   = d.fc_pct != null ? Math.min(d.fc_pct, 60) * (100/60) : 0;
+    const fcCls   = d.fc_pct == null ? 'ok' : d.fc_pct <= FC_TARGET_OK ? 'ok' : d.fc_pct <= FC_TARGET_MAX ? 'warn' : 'alert';
+    const fcColor = d.fc_pct == null ? '' : d.fc_pct > FC_TARGET_MAX ? 'color:var(--red);font-weight:700' : d.fc_pct <= FC_TARGET_OK ? 'color:var(--green);font-weight:700' : 'color:var(--amber-d);font-weight:600';
     const bcgE= {ESTRELLA:'⭐',VACA:'🐄',RETO:'🧩',PERRO:'🐕'}[d.bcg]||'–';
     const catC= CAT_COLORS_MENU[d.categoria]||'#9ca3af';
+    const recipeBadge = d.tiene_receta
+      ? '<span style="font-size:9px;background:#dcfce7;color:#15803d;padding:1px 5px;border-radius:3px;margin-left:4px;font-weight:700;">RECETA</span>'
+      : '<span style="font-size:9px;background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:3px;margin-left:4px;font-weight:700;" title="Sin receta detallada — costo manual">FIJO</span>';
+    let sugCell = '<span class="pvp-sug-mute">—</span>';
+    if (d.pvp_sugerido != null) {
+      if (d.excede_fc) {
+        sugCell = `<span class="pvp-sug">↑ €${d.pvp_sugerido.toFixed(2)}</span><div style="font-size:10px;color:var(--g400);">@ ${FC_TARGET_MAX}%</div>`;
+      } else if (d.fc_pct != null && d.fc_pct < FC_TARGET_OK - 5) {
+        sugCell = `<span class="pvp-sug-mute">€${d.pvp_ideal.toFixed(2)} ideal</span>`;
+      } else {
+        sugCell = `<span style="color:var(--green);font-size:11px;font-weight:600;">✓ ok</span>`;
+      }
+    }
     return `<tr>
-      <td style="font-weight:600;">${d.nombre}</td>
+      <td style="font-weight:600;">${d.nombre}${recipeBadge}</td>
       <td><span style="background:${catC}22;color:${catC};border-radius:6px;padding:2px 7px;font-size:11px;font-weight:600;">${d.categoria}</span></td>
       <td class="r">€${(d.precio_venta||0).toFixed(2)}</td>
-      <td class="r">€${(d.costo_total||0).toFixed(2)}</td>
-      <td class="r" style="${fcC}">${fc}%</td>
+      <td class="r">€${d.costo_calc.toFixed(2)}</td>
+      <td class="r" style="${fcColor}">
+        ${fc}%
+        <div class="fc-bar-wrap"><div class="fc-bar-fill ${fcCls}" style="width:${fcBar}%"></div></div>
+      </td>
       <td class="r" style="font-weight:600;">€${d.margen_eur.toFixed(2)}</td>
+      <td class="r">${sugCell}</td>
       <td class="r"><input type="number" value="${d.ventas_mes||0}" min="0" step="1"
         style="width:58px;text-align:right;border:1px solid var(--g200);border-radius:6px;padding:3px 6px;font-size:12px;"
         onchange="updateVentasMes(${d.id},this.value)"/></td>
-      <td class="r">€${d.rev_mes.toFixed(0)}</td>
       <td style="font-size:18px;text-align:center;" title="${BCG_LABELS[d.bcg]||''}">${bcgE}</td>
       <td><div style="display:flex;gap:4px;">
         <button class="btn-sec" style="padding:4px 8px;font-size:11px;" onclick="openPlatoPanel(${d.id})">✏</button>
@@ -3854,31 +4343,49 @@ function renderMenuTable(dishes) {
 function filterMenu() {
   const cat = document.getElementById('menu-filter-cat')?.value || 'ALL';
   const bcg = document.getElementById('menu-filter-bcg')?.value || 'ALL';
+  const q   = (document.getElementById('menu-search')?.value || '').toLowerCase().trim();
   const filtered = menuDataEnrich.filter(d =>
-    (cat === 'ALL' || d.categoria === cat) && (bcg === 'ALL' || d.bcg === bcg)
+    (cat === 'ALL' || d.categoria === cat) &&
+    (bcg === 'ALL' || d.bcg === bcg) &&
+    (!q || d.nombre.toLowerCase().includes(q))
   );
   renderMenuTable(filtered);
 }
 
-function openPlatoPanel(editId = null) {
+async function openPlatoPanel(editId = null) {
+  // asegurar cache de ingredientes
+  _ingredientesCache = await dbGetAll('ingredientes');
   const isEdit = editId != null;
+  const dish = isEdit ? await dbGet('escandallos', Number(editId)) : null;
+  _editPlatoRecipe = dish && dish.recipe ? JSON.parse(JSON.stringify(dish.recipe)) : [];
+
   openPanel(isEdit ? 'Editar plato' : 'Nuevo plato', '',
     `<div id="form-plato">
       <input type="hidden" id="pl-edit-id" value="${isEdit ? editId : ''}"/>
       <div class="fg"><label class="fl">Nombre del plato</label>
-        <input class="fi" type="text" id="pl-nombre" placeholder="Entraña Argentina, Provoleta..."/></div>
-      <div class="fg"><label class="fl">Categoría</label>
-        <select class="fi" id="pl-cat">
-          <option>Para Empezar</option><option>Vegetales</option><option>Carnes</option>
-          <option>Complementos</option><option>Dulces</option><option>Otros</option>
-        </select></div>
+        <input class="fi" type="text" id="pl-nombre" placeholder="Entraña con chimichurri..."/></div>
       <div class="fg-row c2">
+        <div><label class="fl">Categoría</label>
+          <select class="fi" id="pl-cat">
+            <option>Para Empezar</option><option>Vegetales</option><option>Carnes</option>
+            <option>Complementos</option><option>Dulces</option><option>Otros</option>
+          </select></div>
         <div><label class="fl">Precio venta (€)</label>
           <input class="fi" type="number" id="pl-precio" placeholder="0.00" step="0.01" min="0" inputmode="decimal" oninput="updateFCPreview()"/></div>
-        <div><label class="fl">Costo total (€)</label>
-          <input class="fi" type="number" id="pl-costo" placeholder="0.00" step="0.01" min="0" inputmode="decimal" oninput="updateFCPreview()"/></div>
       </div>
-      <div id="pl-fc-preview" style="background:var(--g100);border-radius:8px;padding:10px;font-size:13px;margin-bottom:4px;min-height:36px;"></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px;">
+        <label class="fl" style="margin:0;">🥩 Receta — ingredientes</label>
+        <button class="btn-sec" style="padding:4px 10px;font-size:11px;" onclick="addRecipeRow()">＋ Añadir</button>
+      </div>
+      <div id="recipe-rows" style="margin-bottom:6px;"></div>
+      <div id="recipe-preview" class="recipe-cost-preview" style="display:none;"></div>
+
+      <div class="fg" style="margin-top:14px;"><label class="fl">Costo total fijo <span style="font-weight:400;color:var(--g400);">— solo si no usás receta</span></label>
+        <input class="fi" type="number" id="pl-costo" placeholder="0.00" step="0.01" min="0" inputmode="decimal" oninput="updateFCPreview()"/></div>
+
+      <div id="pl-fc-preview" style="background:var(--g100);border-radius:8px;padding:10px;font-size:13px;margin-bottom:8px;min-height:36px;"></div>
+
       <div class="fg"><label class="fl">Unidades vendidas / mes <span style="font-weight:400;color:var(--g400);">estimado</span></label>
         <input class="fi" type="number" id="pl-ventas" placeholder="0" min="0" step="1" inputmode="numeric"/></div>
       <div class="fg"><label class="fl">Descripción <span style="font-weight:400;color:var(--g400);">opcional</span></label>
@@ -3886,7 +4393,85 @@ function openPlatoPanel(editId = null) {
       <button class="btn-primary" onclick="submitPlato()">${isEdit ? 'Actualizar plato' : 'Guardar plato'}</button>
     </div>`
   );
-  if (isEdit) loadPlatoForEdit(editId);
+  if (isEdit && dish) {
+    document.getElementById('pl-nombre').value = dish.nombre      || '';
+    document.getElementById('pl-cat').value    = dish.categoria   || 'Para Empezar';
+    document.getElementById('pl-precio').value = dish.precio_venta|| '';
+    document.getElementById('pl-costo').value  = dish.costo_total || '';
+    document.getElementById('pl-ventas').value = dish.ventas_mes  || '';
+    document.getElementById('pl-desc').value   = dish.descripcion || '';
+  }
+  renderRecipeRows();
+  updateFCPreview();
+}
+
+function renderRecipeRows() {
+  const wrap = document.getElementById('recipe-rows');
+  if (!wrap) return;
+  if (!_editPlatoRecipe.length) {
+    wrap.innerHTML = '<div style="font-size:11px;color:var(--g400);padding:8px;text-align:center;background:var(--g50);border-radius:8px;">Sin ingredientes — el costo se calcula del campo "Costo total fijo" más abajo</div>';
+    updateRecipePreview();
+    return;
+  }
+  const ingOpts = (_ingredientesCache||[]).map(i =>
+    `<option value="${i.id}">${i.nombre} — €${Number(i.precio).toFixed(2)}/${i.unidad}</option>`
+  ).join('');
+  wrap.innerHTML = _editPlatoRecipe.map((r, idx) => {
+    const ing = _ingredientesCache.find(i => i.id === r.ing_id);
+    const unidad = ing ? ing.unidad : '';
+    const mermaDef = ing ? ing.merma : 0;
+    return `<div class="recipe-row">
+      <select onchange="updateRecipeIng(${idx}, this.value)">
+        <option value="">— ingrediente —</option>
+        ${ingOpts.replace(`value="${r.ing_id}"`, `value="${r.ing_id}" selected`)}
+      </select>
+      <input type="number" step="0.001" min="0" placeholder="cant" value="${r.cantidad||''}" oninput="updateRecipeQty(${idx}, this.value)"/>
+      <input type="number" step="1" min="0" max="80" placeholder="${mermaDef}%" value="${r.merma_override ?? ''}" oninput="updateRecipeMerma(${idx}, this.value)" title="Merma % override (vacío = ${mermaDef}% por defecto)"/>
+      <button class="ing-btn-del" onclick="removeRecipeRow(${idx})">×</button>
+    </div>`;
+  }).join('');
+  updateRecipePreview();
+}
+function addRecipeRow() {
+  _editPlatoRecipe.push({ ing_id: null, cantidad: 0, merma_override: null });
+  renderRecipeRows();
+}
+function removeRecipeRow(idx) {
+  _editPlatoRecipe.splice(idx, 1);
+  renderRecipeRows();
+}
+function updateRecipeIng(idx, val) {
+  _editPlatoRecipe[idx].ing_id = val ? Number(val) : null;
+  renderRecipeRows();
+}
+function updateRecipeQty(idx, val) {
+  _editPlatoRecipe[idx].cantidad = Number(val) || 0;
+  updateRecipePreview();
+}
+function updateRecipeMerma(idx, val) {
+  _editPlatoRecipe[idx].merma_override = val === '' ? null : Number(val);
+  updateRecipePreview();
+}
+function updateRecipePreview() {
+  const box = document.getElementById('recipe-preview');
+  if (!box) return;
+  const valid = _editPlatoRecipe.filter(r => r.ing_id && r.cantidad > 0);
+  if (!valid.length) { box.style.display = 'none'; updateFCPreview(); return; }
+  const { cost, breakdown } = calcRecipeCost(valid);
+  const lines = breakdown.map(b =>
+    `<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--g600);padding:2px 0;">
+      <span>${b.ing.nombre} <span style="color:var(--g400);">(${b.cantidad}${b.ing.unidad} · merma ${b.merma}%)</span></span>
+      <span>€${b.subt.toFixed(3)}</span>
+    </div>`
+  ).join('');
+  // override pl-costo
+  const pc = document.getElementById('pl-costo');
+  if (pc) pc.value = cost.toFixed(2);
+  box.style.display = '';
+  box.innerHTML = `<div class="label">Costo calculado de la receta</div>
+    <div style="font-size:18px;color:var(--amber-d);font-weight:800;margin-top:2px;">€${cost.toFixed(2)}</div>
+    <div style="margin-top:8px;border-top:1px dashed #fed7aa;padding-top:6px;">${lines}</div>`;
+  updateFCPreview();
 }
 
 function updateFCPreview() {
@@ -3894,23 +4479,15 @@ function updateFCPreview() {
   const c = parseFloat(document.getElementById('pl-costo')?.value)  || 0;
   const el = document.getElementById('pl-fc-preview');
   if (!el) return;
-  if (!p || !c) { el.innerHTML = ''; return; }
-  const fc = (c/p*100).toFixed(1);
+  if (!p && !c) { el.innerHTML = '<span style="color:var(--g400);font-size:11px;">Completá precio y costo para ver el food cost</span>'; return; }
+  if (!p) { el.innerHTML = `<span style="color:var(--g600);">Costo €${c.toFixed(2)} · falta PVP</span>`; return; }
+  if (!c) { el.innerHTML = `<span style="color:var(--g600);">PVP €${p.toFixed(2)} · falta costo</span>`; return; }
+  const fc = (c/p*100);
   const m  = (p-c).toFixed(2);
-  const col= fc>35?'var(--red)':fc<25?'var(--green)':'var(--amber)';
-  el.innerHTML = `<span style="font-weight:800;color:${col};">FC: ${fc}%</span> &nbsp;·&nbsp; Margen: <strong>€${m}</strong>`;
-}
-
-async function loadPlatoForEdit(id) {
-  const d = await dbGet('escandallos', Number(id));
-  if (!d) return;
-  document.getElementById('pl-nombre').value = d.nombre      || '';
-  document.getElementById('pl-cat').value    = d.categoria   || 'Para Empezar';
-  document.getElementById('pl-precio').value = d.precio_venta|| '';
-  document.getElementById('pl-costo').value  = d.costo_total || '';
-  document.getElementById('pl-ventas').value = d.ventas_mes  || '';
-  document.getElementById('pl-desc').value   = d.descripcion || '';
-  updateFCPreview();
+  const col= fc>FC_TARGET_MAX?'var(--red)':fc<=FC_TARGET_OK?'var(--green)':'var(--amber-d)';
+  const pvpSug = (c / (FC_TARGET_MAX/100)).toFixed(2);
+  const sug = fc > FC_TARGET_MAX ? `<div style="font-size:11px;color:var(--red);margin-top:4px;">⚠ Excede techo ${FC_TARGET_MAX}% — PVP sugerido: <strong>€${pvpSug}</strong></div>` : '';
+  el.innerHTML = `<span style="font-weight:800;color:${col};">FC: ${fc.toFixed(1)}%</span> &nbsp;·&nbsp; Margen: <strong>€${m}</strong>${sug}`;
 }
 
 async function submitPlato() {
@@ -3919,11 +4496,16 @@ async function submitPlato() {
   const nombre = document.getElementById('pl-nombre')?.value?.trim();
   if (!nombre) { toast('El nombre es obligatorio', 'err'); return; }
 
+  const recipe = _editPlatoRecipe.filter(r => r.ing_id && Number(r.cantidad) > 0);
+  let costo_total = parseFloat(document.getElementById('pl-costo')?.value) || 0;
+  if (recipe.length) costo_total = calcRecipeCost(recipe).cost;
+
   const obj = {
     nombre,
     categoria:    document.getElementById('pl-cat')?.value    || 'Para Empezar',
     precio_venta: parseFloat(document.getElementById('pl-precio')?.value) || 0,
-    costo_total:  parseFloat(document.getElementById('pl-costo')?.value)  || 0,
+    costo_total,
+    recipe,
     ventas_mes:   parseInt(document.getElementById('pl-ventas')?.value)   || 0,
     descripcion:  document.getElementById('pl-desc')?.value?.trim()       || '',
     activo:       true,
@@ -3954,6 +4536,328 @@ async function updateVentasMes(id, val) {
   d.ventas_mes = parseInt(val) || 0;
   await dbPut('escandallos', d);
   await refreshMenu();
+}
+
+// ═══════════════════════════════════════════════════════
+//  INGREDIENTES — CRUD + Histórico de precios
+// ═══════════════════════════════════════════════════════
+
+async function renderIngredientesList() {
+  const tbody = document.getElementById('ing-tbody');
+  const sub   = document.getElementById('ing-table-sub');
+  if (!tbody) return;
+  const all  = await dbGetAll('ingredientes');
+  _ingredientesCache = all;
+  const dishes = await dbGetAll('escandallos');
+  const hist  = await dbGetAll('precio_historico');
+
+  const q   = (document.getElementById('ing-search')?.value || '').toLowerCase().trim();
+  const cat = document.getElementById('ing-filter-cat')?.value || 'ALL';
+  const items = all.filter(i =>
+    (cat === 'ALL' || i.categoria === cat) &&
+    (!q || i.nombre.toLowerCase().includes(q) || (i.proveedor||'').toLowerCase().includes(q))
+  );
+
+  if (sub) sub.textContent = `${all.length} ingredientes · ${items.length} mostrados`;
+  if (!items.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--g400);padding:30px;">Sin ingredientes que coincidan.</td></tr>';
+    return;
+  }
+  const cutoff = Date.now() - 30*24*3600*1000;
+  tbody.innerHTML = items.map(i => {
+    const usos = dishes.filter(d => d.recipe && d.recipe.some(r => r.ing_id === i.id)).length;
+    const histIng = hist.filter(h => h.ing_id === i.id && new Date(h.fecha).getTime() > cutoff);
+    let delta30 = '<span style="color:var(--g400);">—</span>';
+    if (histIng.length) {
+      const oldest = histIng.sort((a,b) => new Date(a.fecha) - new Date(b.fecha))[0];
+      const diff = i.precio - oldest.viejo;
+      const pct  = oldest.viejo > 0 ? (diff/oldest.viejo*100) : 0;
+      const cls  = diff > 0 ? 'color:var(--red);font-weight:700' : diff < 0 ? 'color:var(--green);font-weight:700' : '';
+      const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '·';
+      delta30 = `<span style="${cls}">${arrow} ${pct.toFixed(1)}%</span>`;
+    }
+    return `<tr>
+      <td style="font-weight:600;">${i.nombre}</td>
+      <td><span style="background:var(--g100);color:var(--g600);border-radius:6px;padding:2px 7px;font-size:11px;font-weight:600;">${i.categoria}</span></td>
+      <td><span style="font-size:11px;color:var(--g600);">${i.proveedor||'<i style=\"color:var(--g400);\">—</i>'}</span></td>
+      <td class="r" style="font-weight:700;">€${Number(i.precio).toFixed(2)}</td>
+      <td class="r">${i.unidad}</td>
+      <td class="r">${i.merma}%</td>
+      <td class="r"><span style="font-size:11px;color:var(--g500);">${usos} ${usos===1?'plato':'platos'}</span></td>
+      <td class="r">${delta30}</td>
+      <td><div style="display:flex;gap:4px;">
+        <button class="btn-sec" style="padding:4px 8px;font-size:11px;" onclick="quickUpdatePrecio(${i.id})">€</button>
+        <button class="btn-sec" style="padding:4px 8px;font-size:11px;" onclick="openIngredientePanel(${i.id})">✏</button>
+        <button class="btn-sec" style="padding:4px 8px;font-size:11px;color:var(--red);" onclick="deleteIngrediente(${i.id})">🗑</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+async function openIngredientePanel(editId = null) {
+  const isEdit = editId != null;
+  const ing = isEdit ? await dbGet('ingredientes', Number(editId)) : null;
+  openPanel(isEdit ? 'Editar ingrediente' : 'Nuevo ingrediente', '',
+    `<div id="form-ing">
+      <input type="hidden" id="ing-edit-id" value="${isEdit ? editId : ''}"/>
+      <div class="fg"><label class="fl">Nombre</label>
+        <input class="fi" type="text" id="ing-nombre" placeholder="Ej: Vacío Angus"/></div>
+      <div class="fg-row c2">
+        <div><label class="fl">Categoría</label>
+          <select class="fi" id="ing-cat">
+            <option>Carne</option><option>Pescado</option><option>Vegetal</option>
+            <option>Lácteo</option><option>Seco / Cereal</option><option>Salsa / Aderezo</option>
+            <option>Bebida</option><option>Otro</option>
+          </select></div>
+        <div><label class="fl">Unidad</label>
+          <select class="fi" id="ing-unidad">
+            <option value="kg">kg</option><option value="un">un</option><option value="lt">lt</option>
+          </select></div>
+      </div>
+      <div class="fg-row c2">
+        <div><label class="fl">Precio actual (€)</label>
+          <input class="fi" type="number" id="ing-precio" step="0.01" min="0" inputmode="decimal"/></div>
+        <div><label class="fl">Merma estándar %</label>
+          <input class="fi" type="number" id="ing-merma" step="1" min="0" max="80" inputmode="numeric"/></div>
+      </div>
+      <div class="fg"><label class="fl">Proveedor <span style="font-weight:400;color:var(--g400);">opcional</span></label>
+        <input class="fi" type="text" id="ing-prov" placeholder="Ej: Can Ramos"/></div>
+      <button class="btn-primary" onclick="submitIngrediente()">${isEdit ? 'Actualizar' : 'Guardar'}</button>
+    </div>`
+  );
+  if (isEdit && ing) {
+    document.getElementById('ing-nombre').value = ing.nombre || '';
+    document.getElementById('ing-cat').value    = ing.categoria || 'Carne';
+    document.getElementById('ing-unidad').value = ing.unidad || 'kg';
+    document.getElementById('ing-precio').value = ing.precio || 0;
+    document.getElementById('ing-merma').value  = ing.merma || 0;
+    document.getElementById('ing-prov').value   = ing.proveedor || '';
+  }
+}
+
+async function submitIngrediente() {
+  const rawId  = document.getElementById('ing-edit-id')?.value;
+  const editId = rawId ? Number(rawId) : null;
+  const nombre = document.getElementById('ing-nombre')?.value?.trim();
+  if (!nombre) { toast('El nombre es obligatorio', 'err'); return; }
+  const obj = {
+    nombre,
+    categoria: document.getElementById('ing-cat')?.value || 'Otro',
+    unidad:    document.getElementById('ing-unidad')?.value || 'kg',
+    precio:    parseFloat(document.getElementById('ing-precio')?.value) || 0,
+    merma:     parseInt(document.getElementById('ing-merma')?.value)    || 0,
+    proveedor: document.getElementById('ing-prov')?.value?.trim()       || '',
+    ts: Date.now(),
+  };
+  if (editId) {
+    const prev = await dbGet('ingredientes', editId);
+    if (prev && prev.precio !== obj.precio) {
+      await dbAdd('precio_historico', {
+        ing_id: editId, ing_nombre: obj.nombre,
+        viejo: prev.precio, nuevo: obj.precio,
+        fecha: new Date().toISOString().slice(0,10), nota: 'Edición manual',
+      });
+    }
+    obj.id = editId;
+    await dbPut('ingredientes', obj);
+    toast('Ingrediente actualizado ✓');
+  } else {
+    await dbAdd('ingredientes', obj);
+    toast('Ingrediente añadido ✓');
+  }
+  closePanel();
+  await renderIngredientesList();
+  await refreshMenu();
+}
+
+async function deleteIngrediente(id) {
+  const dishes = await dbGetAll('escandallos');
+  const usos = dishes.filter(d => d.recipe && d.recipe.some(r => r.ing_id === Number(id))).length;
+  const msg = usos > 0
+    ? `Este ingrediente se usa en ${usos} receta(s). ¿Eliminar igualmente? (las recetas mantendrán el costo último calculado)`
+    : '¿Eliminar este ingrediente?';
+  if (!confirm(msg)) return;
+  await dbDelete('ingredientes', Number(id));
+  toast('Ingrediente eliminado');
+  await renderIngredientesList();
+  await refreshMenu();
+}
+
+async function quickUpdatePrecio(id) {
+  const ing = await dbGet('ingredientes', Number(id));
+  if (!ing) return;
+  const nuevo = prompt(`Actualizar precio de "${ing.nombre}"\nActual: €${ing.precio.toFixed(2)}/${ing.unidad}\n\nNuevo precio (€/${ing.unidad}):`, ing.precio);
+  if (nuevo === null || nuevo === '') return;
+  const n = Number(nuevo);
+  if (isNaN(n) || n < 0) { toast('Precio inválido', 'err'); return; }
+  const nota = prompt('Nota / origen (opcional):', 'Actualización rápida') || '';
+  await dbAdd('precio_historico', {
+    ing_id: ing.id, ing_nombre: ing.nombre,
+    viejo: ing.precio, nuevo: n,
+    fecha: new Date().toISOString().slice(0,10), nota,
+  });
+  ing.precio = n;
+  ing.ts = Date.now();
+  await dbPut('ingredientes', ing);
+  toast('Precio actualizado ✓');
+  await renderIngredientesList();
+  await refreshMenu();
+}
+
+// ── MATCHING FACTURA → INGREDIENTES (parser de líneas OCR + UI) ──
+// Heurística simple: busca líneas con patrón "<descripción> <cantidad>kg <precio>€/kg"
+// o variantes. El usuario confirma cada match manualmente.
+function parseOCRLines(rawText) {
+  if (!rawText) return [];
+  const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const out = [];
+  // patrón €/kg, €/un, €/lt
+  const reqPx = /(\d+[.,]\d{2,4})\s*(?:€|EUR)?\s*\/\s*(kg|un|lt|l|u)/i;
+  // patrón simple precio al final
+  const rePxEnd = /(\d+[.,]\d{2,4})\s*(?:€|EUR)?\s*$/;
+  // patrón cantidad
+  const reQty = /(\d+[.,]?\d*)\s*(kg|gr|g|un|u|lt|l)/i;
+  lines.forEach(line => {
+    if (line.length < 5) return;
+    const mPx = line.match(reqPx) || line.match(rePxEnd);
+    if (!mPx) return;
+    const px = parseFloat(mPx[1].replace(',', '.'));
+    if (isNaN(px) || px <= 0 || px > 200) return; // filtrar ruido
+    // descripción = texto antes del primer dígito relevante
+    let desc = line.replace(reqPx,'').replace(rePxEnd,'').replace(reQty,'').trim();
+    desc = desc.replace(/^\d+[\.\)x×]?\s*/,'').replace(/\s{2,}/g,' ').slice(0, 60);
+    if (desc.length < 3) return;
+    out.push({ desc, precio: px });
+  });
+  return out;
+}
+
+// Fuzzy match básico: solapamiento de tokens
+function matchIngrediente(desc, ingredientes) {
+  const tokens = desc.toLowerCase().split(/[\s\-\/]+/).filter(t => t.length > 2);
+  let best = null, bestScore = 0;
+  for (const ing of ingredientes) {
+    const ingTokens = ing.nombre.toLowerCase().split(/[\s\-\/]+/);
+    let score = 0;
+    tokens.forEach(t => { if (ingTokens.some(it => it.includes(t) || t.includes(it))) score++; });
+    if (score > bestScore) { bestScore = score; best = ing; }
+  }
+  return bestScore > 0 ? best : null;
+}
+
+async function openFCMatchPanel(facturaId, proveedor, fecha, ocrRaw) {
+  _ingredientesCache = await dbGetAll('ingredientes');
+  const parsedLines = parseOCRLines(ocrRaw);
+
+  // Si OCR no detecta líneas, mostrar UI de selección manual
+  const linesHtml = parsedLines.length
+    ? parsedLines.map((l, i) => {
+        const match = matchIngrediente(l.desc, _ingredientesCache);
+        const ingOpts = _ingredientesCache.map(ing =>
+          `<option value="${ing.id}" ${match && match.id === ing.id ? 'selected' : ''}>${ing.nombre} (€${ing.precio.toFixed(2)}/${ing.unidad})</option>`
+        ).join('');
+        return `<tr>
+          <td style="font-size:11px;max-width:200px;">${l.desc}</td>
+          <td class="r" style="font-weight:700;">€${l.precio.toFixed(2)}</td>
+          <td>
+            <select class="fi" style="font-size:11px;padding:4px 6px;" id="fcm-ing-${i}">
+              <option value="">— no matchear —</option>${ingOpts}
+            </select>
+          </td>
+          <td style="text-align:center;">
+            <input type="checkbox" id="fcm-chk-${i}" ${match ? 'checked' : ''} style="accent-color:var(--amber);transform:scale(1.2);"/>
+          </td>
+        </tr>`;
+      }).join('')
+    : `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--g400);font-size:12px;">
+        El OCR no detectó líneas de productos. Podés actualizar precios manualmente desde el catálogo de Ingredientes.
+      </td></tr>`;
+
+  openPanel('Actualizar Food Cost desde factura',
+    `Proveedor: <strong>${proveedor}</strong> · Fecha: ${fecha}`,
+    `<div id="form-fcmatch">
+      <input type="hidden" id="fcm-fact-id" value="${facturaId}"/>
+      <input type="hidden" id="fcm-fact-prov" value="${proveedor}"/>
+      <input type="hidden" id="fcm-fact-fecha" value="${fecha}"/>
+      <p style="font-size:11px;color:var(--g500);background:#fffbeb;border:1px solid #fed7aa;border-radius:8px;padding:10px;margin-bottom:14px;">
+        Revisá cada línea: el OCR sugirió el match con un ingrediente existente. Confirmá con la casilla y guardá — los escandallos se recalculan automáticamente.
+      </p>
+      <div class="tbl-wrap">
+        <table class="tbl" style="font-size:11px;">
+          <thead><tr>
+            <th>Línea OCR detectada</th>
+            <th class="r">€/un</th>
+            <th>Ingrediente catálogo</th>
+            <th style="text-align:center;">✓</th>
+          </tr></thead>
+          <tbody>${linesHtml}</tbody>
+        </table>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:8px;margin-top:14px;">
+        <button class="btn-sec" onclick="closePanel()">Saltar</button>
+        <button class="btn-primary" onclick="applyFCMatch(${parsedLines.length})">Aplicar precios y recalcular</button>
+      </div>
+    </div>`
+  );
+  // guardar parsedLines en window para applyFCMatch
+  window._fcmLines = parsedLines;
+}
+
+async function applyFCMatch(n) {
+  const proveedor = qEl('fcm-fact-prov')?.value || '';
+  const fecha     = qEl('fcm-fact-fecha')?.value || new Date().toISOString().slice(0,10);
+  const lines     = window._fcmLines || [];
+  let updates = 0;
+  for (let i = 0; i < n; i++) {
+    const chk  = qEl('fcm-chk-' + i);
+    const sel  = qEl('fcm-ing-' + i);
+    if (!chk?.checked || !sel?.value) continue;
+    const ingId = Number(sel.value);
+    const ing = await dbGet('ingredientes', ingId);
+    if (!ing) continue;
+    const nuevoPrecio = lines[i].precio;
+    if (ing.precio === nuevoPrecio) continue;
+    await dbAdd('precio_historico', {
+      ing_id: ing.id, ing_nombre: ing.nombre,
+      viejo: ing.precio, nuevo: nuevoPrecio,
+      fecha, nota: `Factura ${proveedor}`,
+    });
+    ing.precio = nuevoPrecio;
+    ing.proveedor = ing.proveedor || proveedor;
+    ing.ts = Date.now();
+    await dbPut('ingredientes', ing);
+    updates++;
+  }
+  closePanel();
+  toast(updates ? `${updates} precio(s) actualizados ✓` : 'Sin cambios aplicados');
+  await refreshMenu();
+  if (_menuSubtab === 'ingredientes') await renderIngredientesList();
+  if (_menuSubtab === 'historico')    await renderHistoricoList();
+}
+
+async function renderHistoricoList() {
+  const tbody = document.getElementById('hist-tbody');
+  if (!tbody) return;
+  const all = await dbGetAll('precio_historico');
+  if (!all.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--g400);padding:30px;">Sin movimientos de precio.</td></tr>';
+    return;
+  }
+  const sorted = all.sort((a,b) => (b.fecha||'').localeCompare(a.fecha||''));
+  tbody.innerHTML = sorted.map(h => {
+    const diff = h.nuevo - h.viejo;
+    const pct  = h.viejo > 0 ? (diff/h.viejo*100) : 0;
+    const cls  = diff > 0 ? 'color:var(--red);font-weight:700' : diff < 0 ? 'color:var(--green);font-weight:700' : '';
+    const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '·';
+    return `<tr>
+      <td style="font-size:11px;color:var(--g500);">${h.fecha}</td>
+      <td style="font-weight:600;">${h.ing_nombre}</td>
+      <td class="r">€${h.viejo.toFixed(2)}</td>
+      <td class="r" style="font-weight:700;">€${h.nuevo.toFixed(2)}</td>
+      <td class="r" style="${cls}">${arrow} €${Math.abs(diff).toFixed(2)} (${pct.toFixed(1)}%)</td>
+      <td style="font-size:11px;color:var(--g500);">${h.nota || ''}</td>
+    </tr>`;
+  }).join('');
 }
 
 // ── VENTAS SEED ────────────────────────────────────────
@@ -4010,6 +4914,9 @@ async function init() {
 
     step('Cargando escandallos…');
     await seedEscandallos();
+
+    step('Cargando ingredientes…');
+    await seedIngredientes();
 
     step('Renderizando…');
     // Render inicial
