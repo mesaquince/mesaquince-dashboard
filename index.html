@@ -406,6 +406,39 @@ input,select,textarea{font-family:inherit;}
 /* ── OCR BADGE ── */
 .badge-ocr{background:#ede9fe;color:#7c3aed;}
 
+/* ── SUB-TABS módulo Menú ── */
+.sub-tab{background:transparent;border:none;color:var(--g400);padding:10px 16px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;border-radius:0;transition:color 0.15s;}
+.sub-tab:hover{color:var(--g900);}
+.sub-tab.active{color:var(--amber-d);border-bottom-color:var(--amber);}
+
+/* ── ALERTAS FC > techo ── */
+.m-alert-box{background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start;}
+.m-alert-box .m-alert-icon{font-size:22px;flex-shrink:0;}
+.m-alert-box .m-alert-content{flex:1;font-size:12px;color:var(--g900);line-height:1.5;}
+.m-alert-box .m-alert-content strong{color:#b91c1c;}
+.m-alert-box ul{margin:6px 0 0;padding-left:18px;}
+.m-alert-box li{margin-bottom:3px;}
+
+/* ── BARRA FC ── */
+.fc-bar-wrap{background:var(--g100);height:5px;border-radius:3px;overflow:hidden;margin-top:4px;min-width:60px;}
+.fc-bar-fill{height:100%;transition:width 0.3s;}
+.fc-bar-fill.ok{background:var(--green);}
+.fc-bar-fill.warn{background:var(--amber);}
+.fc-bar-fill.alert{background:var(--red);}
+
+/* ── Etiquetas sugerencia ── */
+.pvp-sug{font-size:11px;font-weight:700;color:var(--amber-d);}
+.pvp-sug-mute{font-size:11px;color:var(--g400);}
+
+/* ── Editor de recetas en panel ── */
+.recipe-row{display:grid;grid-template-columns:1fr 70px 80px 30px;gap:6px;align-items:flex-end;margin-bottom:6px;}
+.recipe-row select, .recipe-row input{font-size:11px;padding:5px 7px;border:1px solid var(--g200);border-radius:6px;background:var(--white);}
+.recipe-row .ing-btn-del{background:transparent;border:1px solid var(--g200);color:var(--red);padding:5px;border-radius:6px;cursor:pointer;font-size:13px;}
+.recipe-row .ing-btn-del:hover{background:#fef2f2;}
+.recipe-cost-preview{background:#fffbeb;border:1px solid #fed7aa;border-radius:8px;padding:10px 12px;margin-top:8px;font-size:12px;}
+.recipe-cost-preview .label{color:var(--g400);font-size:10px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;}
+.recipe-cost-preview .val{font-weight:700;color:var(--g900);}
+
 /* ── DEUDA ITEMS ── */
 .di-card{background:var(--white);border-radius:14px;border:1.5px solid var(--g200);
   margin-bottom:8px;overflow:hidden;transition:all 0.15s;box-shadow:var(--shadow-sm);}
@@ -469,6 +502,7 @@ input,select,textarea{font-family:inherit;}
 <div id="tabnav">
   <button class="tab-btn active" onclick="switchTab('ventas')">📊 Ventas</button>
   <button class="tab-btn" onclick="switchTab('menu')">🍽️ Menú</button>
+  <button class="tab-btn" onclick="switchTab('recetario')">📖 Recetario</button>
   <button class="tab-btn" onclick="switchTab('stock')">📦 Stock</button>
   <button class="tab-btn" onclick="switchTab('tesoreria')">💰 Tesorería</button>
   <button class="tab-btn" onclick="switchTab('facturas')">🧾 Facturas</button>
@@ -702,7 +736,7 @@ input,select,textarea{font-family:inherit;}
   </div><!-- /tab-ventas -->
 
   <!-- ─────────────────────────────────── -->
-  <!-- TAB 2: INGENIERÍA DE MENÚ -->
+  <!-- TAB 2: INGENIERÍA DE MENÚ (BCG + Loomis) -->
   <!-- ─────────────────────── -->
   <div class="tab-panel" id="tab-menu">
 
@@ -780,11 +814,168 @@ input,select,textarea{font-family:inherit;}
         </table>
       </div>
       <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--g100);font-size:11px;color:var(--g400);">
-        💡 <strong>Uds/mes</strong> es editable — ajustalo con los datos reales de Loomis o manualmente para recalcular la Matriz BCG.
+        💡 <strong>Uds/mes</strong> editable — viene de Loomis. <strong>Costo</strong> y <strong>FC%</strong> calculados con coste de servicio (configurable en pestaña <a href="#" onclick="switchTab('recetario');return false;" style="color:var(--amber-d);text-decoration:none;font-weight:600;">📖 Recetario</a>).
       </div>
     </div>
 
   </div><!-- /tab-menu -->
+
+  <!-- ─────────────────────────────────── -->
+  <!-- TAB 2.5: RECETARIO (gestor de recetas, ingredientes, precios) -->
+  <!-- ─────────────────────── -->
+  <div class="tab-panel" id="tab-recetario">
+
+    <!-- BARRA CONFIG: COSTE SERVICIO -->
+    <div style="background:#fffbeb;border:1px solid #fed7aa;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div style="font-size:11px;color:var(--g600);">
+        ⚙️ Coste de servicio aplicado: <strong style="color:var(--amber-d);font-size:13px;" id="cs-pct-lbl">5%</strong>
+        <span style="color:var(--g400);">— prorrateo operativo (pan, sal, hielo, merma cocina, aceite fritura, servilletas). El FC% mostrado incluye este ajuste.</span>
+      </div>
+      <button class="btn-sec" style="padding:5px 12px;font-size:11px;" onclick="editCostServicio()">Editar %</button>
+    </div>
+
+    <!-- KPIs RECETARIO -->
+    <div class="kpi-grid" style="margin-bottom:14px;">
+      <div class="kpi-card"><div class="kpi-label">📖 Recetas</div><div class="kpi-val" id="r-total">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">🥩 Ingredientes</div><div class="kpi-val" id="r-ing-total">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">🧮 FC promedio</div><div class="kpi-val" id="r-fc">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">⚠️ FC &gt; 30%</div><div class="kpi-val" id="r-alerts-count">—</div></div>
+    </div>
+
+    <!-- ALERTAS FC > 30% -->
+    <div id="r-alerts" style="display:none;margin-bottom:14px;"></div>
+
+    <!-- SUB-TABS -->
+    <div style="display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--g200);">
+      <button class="sub-tab active" data-rstab="platos" onclick="switchRecetarioSubtab('platos')">🍽️ Platos / Recetas</button>
+      <button class="sub-tab" data-rstab="ingredientes" onclick="switchRecetarioSubtab('ingredientes')">🥩 Ingredientes</button>
+      <button class="sub-tab" data-rstab="historico" onclick="switchRecetarioSubtab('historico')">📈 Histórico precios</button>
+    </div>
+
+    <!-- SUB-TAB: PLATOS / RECETAS -->
+    <div class="rec-subpanel" id="rsub-platos">
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <div class="card-title">Escandallos editables</div>
+            <div class="card-sub" id="r-platos-sub" style="margin-top:2px;">—</div>
+          </div>
+          <div class="section-actions">
+            <input class="fi" type="text" id="r-search" placeholder="Buscar plato…" style="font-size:12px;padding:6px 10px;width:160px;" oninput="renderRecetarioPlatos()"/>
+            <select class="fi" style="font-size:12px;padding:6px 10px;width:auto;" id="r-filter-cat" onchange="renderRecetarioPlatos()">
+              <option value="ALL">Todas las categorías</option>
+              <option value="Para Empezar">Para Empezar</option>
+              <option value="Vegetales">Vegetales</option>
+              <option value="Carnes">Carnes</option>
+              <option value="Complementos">Complementos</option>
+              <option value="Dulces">Dulces</option>
+              <option value="Otros">Otros</option>
+            </select>
+            <button class="btn-primary" onclick="openPlatoPanel()">＋ Plato</button>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Plato</th>
+                <th>Categoría</th>
+                <th class="r">PVP</th>
+                <th class="r">Costo</th>
+                <th class="r">FC %</th>
+                <th class="r">Margen €</th>
+                <th class="r">Sugerencia PVP</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="r-platos-tbody">
+              <tr><td colspan="8" style="text-align:center;color:var(--g400);padding:30px;">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--g100);font-size:11px;color:var(--g400);">
+          💡 Sugerencia PVP = (costo MP + servicio) / <span id="r-fc-max-lbl">30</span>% (techo). Costo = MP × (1 + <span id="r-cs-pct">5</span>% servicio). Clic en plato para editar receta ingrediente por ingrediente.
+        </div>
+      </div>
+    </div>
+
+    <!-- SUB-TAB: INGREDIENTES -->
+    <div class="rec-subpanel" id="rsub-ingredientes" style="display:none;">
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <div class="card-title">Catálogo de Ingredientes</div>
+            <div class="card-sub" id="ing-table-sub" style="margin-top:2px;">—</div>
+          </div>
+          <div class="section-actions">
+            <input class="fi" type="text" id="ing-search" placeholder="Buscar ingrediente / proveedor…" style="font-size:12px;padding:6px 10px;width:200px;" oninput="renderIngredientesList()"/>
+            <select class="fi" style="font-size:12px;padding:6px 10px;width:auto;" id="ing-filter-cat" onchange="renderIngredientesList()">
+              <option value="ALL">Todas las categorías</option>
+              <option value="Carne">Carne</option>
+              <option value="Pescado">Pescado</option>
+              <option value="Vegetal">Vegetal</option>
+              <option value="Lácteo">Lácteo</option>
+              <option value="Seco / Cereal">Seco / Cereal</option>
+              <option value="Salsa / Aderezo">Salsa / Aderezo</option>
+              <option value="Bebida">Bebida</option>
+              <option value="Otro">Otro</option>
+            </select>
+            <button class="btn-primary" onclick="openIngredientePanel()">＋ Ingrediente</button>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl" id="ing-tbl">
+            <thead>
+              <tr>
+                <th>Ingrediente</th>
+                <th>Categoría</th>
+                <th>Proveedor</th>
+                <th class="r">Precio €/un</th>
+                <th class="r">Unidad</th>
+                <th class="r">Merma %</th>
+                <th class="r">Uso</th>
+                <th class="r">Δ último mes</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="ing-tbody">
+              <tr><td colspan="9" style="text-align:center;color:var(--g400);padding:30px;">Cargando ingredientes...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUB-TAB: HISTÓRICO PRECIOS -->
+    <div class="rec-subpanel" id="rsub-historico" style="display:none;">
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <div class="card-title">Histórico de cambios de precio</div>
+            <div class="card-sub" style="margin-top:2px;">Cada actualización queda registrada. Auto-loggeado al guardar una factura con OCR.</div>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Ingrediente</th>
+                <th class="r">Anterior</th>
+                <th class="r">Nuevo</th>
+                <th class="r">Δ</th>
+                <th>Origen / Nota</th>
+              </tr>
+            </thead>
+            <tbody id="hist-tbody">
+              <tr><td colspan="6" style="text-align:center;color:var(--g400);padding:30px;">Sin movimientos de precio.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-recetario -->
 
   <!-- ─────────────────────────────────── -->
   <!-- TAB 3: STOCK (COMING)              -->
@@ -1276,8 +1467,8 @@ input,select,textarea{font-family:inherit;}
               <span>Acumular al CMV del mes (si es mercadería)</span>
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
-              <input type="checkbox" id="f-imp-food" style="accent-color:var(--amber);"/>
-              <span>Actualizar precio de ingrediente en Food Cost</span>
+              <input type="checkbox" id="f-imp-fc" style="accent-color:var(--amber);" checked/>
+              <span>Actualizar precio de ingrediente en Food Cost <span style="color:var(--amber-d);font-size:10px;font-weight:600;">(abre matching)</span></span>
             </label>
           </div>
 
@@ -1543,7 +1734,7 @@ let DB; // IndexedDB instance
 
 // ── INDEXEDDB ─────────────────────────────────────────
 const DB_NAME    = 'MesaquinceOS';
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 
 function resetDB() {
   const req = indexedDB.deleteDatabase(DB_NAME);
@@ -1588,6 +1779,8 @@ function initDB() {
       makeStore('deuda',        { keyPath:'id' });
       makeStore('deuda_pagos',  { keyPath:'id', autoIncrement:true }, [['deuda_id','deuda_id']]);
       makeStore('escandallos',  { keyPath:'id', autoIncrement:true }, [['categoria','categoria']]);
+      makeStore('ingredientes', { keyPath:'id', autoIncrement:true }, [['categoria','categoria'],['nombre','nombre']]);
+      makeStore('precio_historico', { keyPath:'id', autoIncrement:true }, [['ing_id','ing_id'],['fecha','fecha']]);
     };
 
     req.onsuccess = e => {
@@ -1739,6 +1932,7 @@ function fabAction() {
 function refreshTab(id) {
   if (id === 'ventas')    refreshVentas();
   if (id === 'menu')      refreshMenu();
+  if (id === 'recetario') refreshRecetario();
   if (id === 'tesoreria') refreshTesoreria();
   if (id === 'facturas')  refreshFacturas();
   if (id === 'deuda')     refreshDeuda();
@@ -3072,6 +3266,14 @@ async function submitFactura() {
       impactos.push(`CMV de ${monthLabel(mesKey)} actualizado (+${fmt(base||total)})`);
     }
 
+    // 4. Actualizar precios de ingredientes (Food Cost) — abre modal de matching
+    const impFC = qEl('f-imp-fc')?.checked;
+    let abrirFCMatch = false;
+    if (impFC && (cat==='mercaderia'||cat==='bebidas')) {
+      abrirFCMatch = true;
+      impactos.push('Abrir matching ingredientes Food Cost');
+    }
+
     toast('Guardado ✓' + (impactos.length ? ' · ' + impactos.length + ' impacto(s) aplicados' : ''));
     if (impactos.length) {
       setTimeout(() => toast(impactos.join(' | '), 'info'), 2000);
@@ -3081,6 +3283,10 @@ async function submitFactura() {
     qEl('f-ocr-progress').style.display   = 'none';
     _currentImgData = null;
     await refreshFacturas();
+
+    if (abrirFCMatch) {
+      setTimeout(() => openFCMatchPanel(savedId, proveedor, fechaDoc, ocrRaw), 600);
+    }
 
   } catch(e) {
     toast('Error: ' + e.message, 'err');
@@ -3508,6 +3714,48 @@ const ESCANDALLOS_SEED = [
   {nombre:'Chocotorta',                  categoria:'Dulces',       precio_venta:9.0,  costo_total:1.82, ventas_mes:50,  activo:true, descripcion:'Nuestra versión'},
 ];
 
+// ── INGREDIENTES SEED — precios reales albarán 29/05/2026 ───
+const INGREDIENTES_SEED = [
+  // CARNES (precios del albarán 29/05)
+  {nombre:'Vacío Angus',                categoria:'Carne',           unidad:'kg', precio:26.95, merma:10, proveedor:'Can Ramos'},
+  {nombre:'Entraña',                    categoria:'Carne',           unidad:'kg', precio:15.94, merma:30, proveedor:'Can Ramos'},
+  {nombre:'Lomo bajo / Bife de chorizo',categoria:'Carne',           unidad:'kg', precio:28.25, merma:20, proveedor:'Can Ramos'},
+  {nombre:'Mollejas de corazón',        categoria:'Carne',           unidad:'kg', precio:24.16, merma:45, proveedor:'Can Ramos'},
+  {nombre:'Carne Angus milanesa',       categoria:'Carne',           unidad:'kg', precio:20.90, merma:15, proveedor:'Can Ramos'},
+  {nombre:'Secreto ibérico',            categoria:'Carne',           unidad:'kg', precio:14.90, merma:15, proveedor:'Can Ramos'},
+  // VEGETALES
+  {nombre:'Pimiento rojo',              categoria:'Vegetal',         unidad:'kg', precio:11.90, merma:5,  proveedor:''},
+  {nombre:'Berenjena',                  categoria:'Vegetal',         unidad:'kg', precio:2.20,  merma:8,  proveedor:''},
+  {nombre:'Calabacín',                  categoria:'Vegetal',         unidad:'kg', precio:2.50,  merma:5,  proveedor:''},
+  {nombre:'Ajo',                        categoria:'Vegetal',         unidad:'kg', precio:7.34,  merma:5,  proveedor:''},
+  {nombre:'Limón',                      categoria:'Vegetal',         unidad:'kg', precio:1.56,  merma:0,  proveedor:''},
+  {nombre:'Cebolla blanca',             categoria:'Vegetal',         unidad:'kg', precio:1.03,  merma:5,  proveedor:''},
+  {nombre:'Boniato',                    categoria:'Vegetal',         unidad:'kg', precio:2.29,  merma:5,  proveedor:''},
+  {nombre:'Apionabo',                   categoria:'Vegetal',         unidad:'kg', precio:6.13,  merma:10, proveedor:''},
+  {nombre:'Col blanca',                 categoria:'Vegetal',         unidad:'kg', precio:1.20,  merma:5,  proveedor:''},
+  {nombre:'Zanahoria',                  categoria:'Vegetal',         unidad:'kg', precio:1.10,  merma:5,  proveedor:''},
+  {nombre:'Tomate',                     categoria:'Vegetal',         unidad:'kg', precio:8.00,  merma:5,  proveedor:''},
+  // LÁCTEOS
+  {nombre:'Mozzarella',                 categoria:'Lácteo',          unidad:'kg', precio:15.30, merma:0,  proveedor:''},
+  {nombre:'Provolone',                  categoria:'Lácteo',          unidad:'kg', precio:15.30, merma:0,  proveedor:''},
+  {nombre:'Jamón cocido',               categoria:'Lácteo',          unidad:'kg', precio:10.80, merma:0,  proveedor:''},
+  // SECOS / CEREALES
+  {nombre:'Panko',                      categoria:'Seco / Cereal',   unidad:'kg', precio:5.23,  merma:0,  proveedor:''},
+  {nombre:'Huevada (mezcla huevo)',     categoria:'Seco / Cereal',   unidad:'un', precio:0.25,  merma:0,  proveedor:''},
+  // SALSAS / ADEREZOS
+  {nombre:'Chimichurri reposado',       categoria:'Salsa / Aderezo', unidad:'kg', precio:3.64,  merma:0,  proveedor:''},
+  {nombre:'Salsa criolla',              categoria:'Salsa / Aderezo', unidad:'kg', precio:4.50,  merma:0,  proveedor:''},
+  {nombre:'Aceite oliva',               categoria:'Salsa / Aderezo', unidad:'lt', precio:2.92,  merma:0,  proveedor:''},
+  {nombre:'Aceite picante Chilli Oil',  categoria:'Salsa / Aderezo', unidad:'lt', precio:4.56,  merma:0,  proveedor:''},
+  {nombre:'Sal maldon',                 categoria:'Salsa / Aderezo', unidad:'kg', precio:14.60, merma:0,  proveedor:''},
+  {nombre:'Sal y pimienta',             categoria:'Salsa / Aderezo', unidad:'kg', precio:5.00,  merma:0,  proveedor:''},
+  {nombre:'Mayonesa',                   categoria:'Salsa / Aderezo', unidad:'kg', precio:4.50,  merma:0,  proveedor:''},
+  {nombre:'Vinagre / Limón coleslaw',   categoria:'Salsa / Aderezo', unidad:'lt', precio:1.50,  merma:0,  proveedor:''},
+  {nombre:'Salsa tomate',               categoria:'Salsa / Aderezo', unidad:'kg', precio:3.50,  merma:0,  proveedor:''},
+  {nombre:'Miel',                       categoria:'Salsa / Aderezo', unidad:'kg', precio:6.38,  merma:0,  proveedor:''},
+  {nombre:'Pesto rojo',                 categoria:'Salsa / Aderezo', unidad:'kg', precio:11.29, merma:0,  proveedor:''},
+];
+
 const DEUDA_FILTER = { cat:'ALL', urg:'ALL' };
 
 const CAT_ICONS_DEUDA = {
@@ -3834,6 +4082,14 @@ async function syncToGSheet(payload) {
 
 let bcgChartInst   = null;
 let menuDataEnrich = []; // enriched cache for filter
+let _ingredientesCache = []; // cache para selects/cálculos
+let _editPlatoRecipe = []; // estado del editor de receta en panel
+
+// Configuración Food Cost target (editable desde UI futura)
+const FC_TARGET_MAX = 30; // techo crítico
+const FC_TARGET_OK  = 28; // ideal
+const COST_SERVICIO_PCT_DEFAULT = 5; // % prorrateo operativo (pan, sal, hielo, merma cocina, aceite frit, servilletas)
+let _costServicioPct = COST_SERVICIO_PCT_DEFAULT;
 
 const CAT_COLORS_MENU = {
   'Para Empezar': '#f59e0b',
@@ -3869,29 +4125,117 @@ async function seedEscandallos() {
   }
 }
 
+async function seedIngredientes() {
+  const existing = await dbGetAll('ingredientes');
+  if (existing.length > 0) {
+    _ingredientesCache = existing;
+    return;
+  }
+  for (const i of INGREDIENTES_SEED) {
+    await dbAdd('ingredientes', { ...i, ts: Date.now() });
+  }
+  _ingredientesCache = await dbGetAll('ingredientes');
+}
+
+// Calcula costo de una receta a partir de su lista de ingredientes
+// recipe = [{ ing_id, cantidad, merma_override? }]
+function calcRecipeCost(recipe) {
+  if (!recipe || !recipe.length) return { cost: 0, breakdown: [] };
+  let cost = 0;
+  const breakdown = [];
+  for (const r of recipe) {
+    const ing = _ingredientesCache.find(i => i.id === r.ing_id);
+    if (!ing) continue;
+    const merma = (r.merma_override !== null && r.merma_override !== undefined && r.merma_override !== '')
+      ? Number(r.merma_override) : Number(ing.merma || 0);
+    const subt = Number(r.cantidad) * Number(ing.precio) * (1 + merma / 100);
+    cost += subt;
+    breakdown.push({ ing, cantidad: r.cantidad, merma, subt });
+  }
+  return { cost, breakdown };
+}
+
+// Devuelve el costo MP del plato: si tiene receta → calculado dinámico, sino → costo_total guardado
+function dishCostMP(dish) {
+  if (dish.recipe && dish.recipe.length) {
+    return calcRecipeCost(dish.recipe).cost;
+  }
+  return Number(dish.costo_total || 0);
+}
+// Costo efectivo = MP × (1 + coste servicio %)
+function dishCost(dish) {
+  return dishCostMP(dish) * (1 + _costServicioPct / 100);
+}
+
+function fmtPct(n) {
+  if (n === null || n === undefined || isNaN(n) || n === 0) return '—';
+  return n.toFixed(1) + '%';
+}
+
+
+async function editCostServicio() {
+  const val = prompt(
+    `Coste de servicio (prorrateo operativo)\n\n` +
+    `Actual: ${_costServicioPct}%\n\n` +
+    `Sugerencias: 2-3% casual · 4-6% bistró/brasa · 7-10% fine dining\n\n` +
+    `Nuevo % (0-20):`,
+    _costServicioPct
+  );
+  if (val === null) return;
+  const n = Number(val);
+  if (isNaN(n) || n < 0 || n > 20) { toast('Valor inválido (0-20%)', 'err'); return; }
+  _costServicioPct = n;
+  await dbSetConfig('cost_servicio_pct', n);
+  toast(`Coste de servicio: ${n}% ✓`);
+  await refreshMenu();
+}
+
 async function refreshMenu() {
+  // refrescar cache de ingredientes (precio puede haber cambiado por una factura)
+  _ingredientesCache = await dbGetAll('ingredientes');
+  _costServicioPct = await dbGetConfig('cost_servicio_pct', COST_SERVICIO_PCT_DEFAULT);
+
   const all    = await dbGetAll('escandallos');
   const activos = all.filter(d => d.activo !== false);
   if (!activos.length) {
     document.getElementById('menu-tbody').innerHTML =
       '<tr><td colspan="10" style="text-align:center;color:var(--g400);padding:30px;">Sin platos. Añadí tu primer plato con ＋</td></tr>';
+    document.getElementById('m-alerts').style.display = 'none';
     return;
   }
 
+  // costo recalculado para cada plato (dinámico si tiene receta)
+  const costosMP  = activos.map(d => dishCostMP(d));
+  const costos    = costosMP.map(c => c * (1 + _costServicioPct / 100));
+
   const totalUnits = activos.reduce((s,d) => s + (d.ventas_mes||0), 0);
   const pops       = activos.map(d => totalUnits > 0 ? ((d.ventas_mes||0)/totalUnits*100) : 0);
-  const margenes   = activos.map(d => (d.precio_venta||0) - (d.costo_total||0));
+  const margenes   = activos.map((d,i) => (d.precio_venta||0) - costos[i]);
   const medPop     = medianArr(pops);
   const medMargen  = medianArr(margenes);
 
-  menuDataEnrich = activos.map((d, i) => ({
-    ...d,
-    fc_pct:    d.costo_total && d.precio_venta ? (d.costo_total / d.precio_venta * 100) : null,
-    margen_eur: margenes[i],
-    pop_pct:   pops[i],
-    bcg:       calcBCG(pops[i], margenes[i], medPop, medMargen),
-    rev_mes:   (d.precio_venta||0) * (d.ventas_mes||0),
-  }));
+  menuDataEnrich = activos.map((d, i) => {
+    const costo = costos[i];
+    const costo_mp = costosMP[i];
+    const pvp = d.precio_venta || 0;
+    const fc_pct = costo && pvp ? (costo / pvp * 100) : null;
+    const pvp_sugerido = costo ? costo / (FC_TARGET_MAX / 100) : null;
+    const pvp_ideal    = costo ? costo / (FC_TARGET_OK  / 100) : null;
+    return {
+      ...d,
+      costo_calc: costo,
+      costo_mp,
+      tiene_receta: !!(d.recipe && d.recipe.length),
+      fc_pct,
+      margen_eur: margenes[i],
+      pop_pct:   pops[i],
+      bcg:       calcBCG(pops[i], margenes[i], medPop, medMargen),
+      rev_mes:   pvp * (d.ventas_mes||0),
+      pvp_sugerido,
+      pvp_ideal,
+      excede_fc: fc_pct != null && fc_pct > FC_TARGET_MAX,
+    };
+  });
 
   const withFC   = menuDataEnrich.filter(d => d.fc_pct != null);
   const avgFC    = withFC.length ? withFC.reduce((s,d) => s + d.fc_pct, 0) / withFC.length : 0;
@@ -3901,7 +4245,10 @@ async function refreshMenu() {
 
   setEl('m-total',  activos.length);
   const fcEl = document.getElementById('m-fc');
-  if (fcEl) { fcEl.textContent = avgFC.toFixed(1)+'%'; fcEl.style.color = avgFC>35?'var(--red)':avgFC<25?'var(--green)':''; }
+  if (fcEl) {
+    fcEl.textContent = avgFC.toFixed(1)+'%';
+    fcEl.style.color = avgFC>FC_TARGET_MAX?'var(--red)':avgFC<FC_TARGET_OK-3?'var(--green)':'var(--amber-d)';
+  }
   setEl('m-precio', '€'+avgPrecio.toFixed(2));
   setEl('m-margen', '€'+avgMargen.toFixed(2));
 
@@ -4015,14 +4362,14 @@ function renderMenuTable(dishes) {
   }
   tbody.innerHTML = dishes.map(d => {
     const fc  = d.fc_pct != null ? d.fc_pct.toFixed(1) : '–';
-    const fcC = d.fc_pct != null ? (d.fc_pct>35?'color:var(--red);font-weight:700':d.fc_pct<25?'color:var(--green);font-weight:700':'') : '';
+    const fcC = d.fc_pct != null ? (d.fc_pct>FC_TARGET_MAX?'color:var(--red);font-weight:700':d.fc_pct<=FC_TARGET_OK?'color:var(--green);font-weight:700':'color:var(--amber-d);font-weight:600') : '';
     const bcgE= {ESTRELLA:'⭐',VACA:'🐄',RETO:'🧩',PERRO:'🐕'}[d.bcg]||'–';
     const catC= CAT_COLORS_MENU[d.categoria]||'#9ca3af';
     return `<tr>
       <td style="font-weight:600;">${d.nombre}</td>
       <td><span style="background:${catC}22;color:${catC};border-radius:6px;padding:2px 7px;font-size:11px;font-weight:600;">${d.categoria}</span></td>
       <td class="r">€${(d.precio_venta||0).toFixed(2)}</td>
-      <td class="r">€${(d.costo_total||0).toFixed(2)}</td>
+      <td class="r">€${d.costo_calc.toFixed(2)}</td>
       <td class="r" style="${fcC}">${fc}%</td>
       <td class="r" style="font-weight:600;">€${d.margen_eur.toFixed(2)}</td>
       <td class="r"><input type="number" value="${d.ventas_mes||0}" min="0" step="1"
@@ -4047,25 +4394,172 @@ function filterMenu() {
   renderMenuTable(filtered);
 }
 
-function openPlatoPanel(editId = null) {
+// ═══════════════════════════════════════════════════════
+//  MÓDULO 2.5 — RECETARIO (gestor de recetas + ingredientes + histórico)
+// ═══════════════════════════════════════════════════════
+
+let _recSubtab = 'platos';
+
+function switchRecetarioSubtab(name) {
+  _recSubtab = name;
+  document.querySelectorAll('.sub-tab[data-rstab]').forEach(t => t.classList.toggle('active', t.dataset.rstab === name));
+  document.querySelectorAll('.rec-subpanel').forEach(p => p.style.display = (p.id === 'rsub-' + name) ? '' : 'none');
+  if (name === 'ingredientes') renderIngredientesList();
+  if (name === 'historico')    renderHistoricoList();
+  if (name === 'platos')       renderRecetarioPlatos();
+}
+
+async function refreshRecetario() {
+  _ingredientesCache = await dbGetAll('ingredientes');
+  _costServicioPct   = await dbGetConfig('cost_servicio_pct', COST_SERVICIO_PCT_DEFAULT);
+  setEl('cs-pct-lbl', _costServicioPct + '%');
+  setEl('r-cs-pct',   _costServicioPct);
+  setEl('r-fc-max-lbl', FC_TARGET_MAX);
+
+  const all     = await dbGetAll('escandallos');
+  const activos = all.filter(d => d.activo !== false);
+  const ings    = _ingredientesCache;
+
+  // Enriquecer cada plato con cost MP, cost efectivo, FC, sugerencia
+  const enriched = activos.map(d => {
+    const costo_mp = dishCostMP(d);
+    const costo    = costo_mp * (1 + _costServicioPct/100);
+    const pvp      = d.precio_venta || 0;
+    const fc_pct   = costo && pvp ? (costo/pvp*100) : null;
+    const pvp_sug  = costo ? costo / (FC_TARGET_MAX/100) : null;
+    const pvp_id   = costo ? costo / (FC_TARGET_OK/100)  : null;
+    return { ...d, costo_mp, costo_calc: costo, fc_pct, pvp_sugerido: pvp_sug, pvp_ideal: pvp_id, excede_fc: fc_pct != null && fc_pct > FC_TARGET_MAX, tiene_receta: !!(d.recipe && d.recipe.length) };
+  });
+  window._recEnriched = enriched;
+
+  // KPIs
+  const withFC = enriched.filter(d => d.fc_pct != null);
+  const avgFC  = withFC.length ? withFC.reduce((s,d) => s+d.fc_pct, 0) / withFC.length : 0;
+  const alerts = enriched.filter(d => d.excede_fc);
+  setEl('r-total', activos.length);
+  setEl('r-ing-total', ings.length);
+  const rFC = document.getElementById('r-fc');
+  if (rFC) { rFC.textContent = avgFC.toFixed(1)+'%'; rFC.style.color = avgFC>FC_TARGET_MAX?'var(--red)':avgFC<=FC_TARGET_OK?'var(--green)':'var(--amber-d)'; }
+  const rA = document.getElementById('r-alerts-count');
+  if (rA) { rA.textContent = alerts.length; rA.style.color = alerts.length>0?'var(--red)':'var(--green)'; }
+
+  // Alertas banner
+  renderRecetarioAlerts(alerts);
+
+  // Render según sub-tab activo
+  renderRecetarioPlatos();
+}
+
+function renderRecetarioAlerts(alerts) {
+  const box = document.getElementById('r-alerts');
+  if (!box) return;
+  if (!alerts.length) { box.style.display = 'none'; return; }
+  box.style.display = '';
+  const items = alerts.slice(0,5).map(d =>
+    `<li><strong>${d.nombre}</strong> — FC ${d.fc_pct.toFixed(1)}% — sugerir PVP <strong>€${d.pvp_sugerido.toFixed(2)}</strong> para llegar al ${FC_TARGET_MAX}% (margen €${(d.pvp_sugerido - d.costo_calc).toFixed(2)})</li>`
+  ).join('');
+  const more = alerts.length > 5 ? `<li style="color:var(--g400);">y ${alerts.length-5} plato(s) más…</li>` : '';
+  box.innerHTML = `<div class="m-alert-box">
+    <div class="m-alert-icon">⚠️</div>
+    <div class="m-alert-content">
+      <strong>${alerts.length} plato${alerts.length>1?'s':''} supera${alerts.length>1?'n':''} el ${FC_TARGET_MAX}% de Food Cost (incluyendo coste de servicio ${_costServicioPct}%).</strong>
+      <ul>${items}${more}</ul>
+    </div>
+  </div>`;
+}
+
+function renderRecetarioPlatos() {
+  const tbody = document.getElementById('r-platos-tbody');
+  const sub   = document.getElementById('r-platos-sub');
+  if (!tbody) return;
+  const all = window._recEnriched || [];
+  const q   = (document.getElementById('r-search')?.value || '').toLowerCase().trim();
+  const cat = document.getElementById('r-filter-cat')?.value || 'ALL';
+  const items = all.filter(d =>
+    (cat === 'ALL' || d.categoria === cat) &&
+    (!q || d.nombre.toLowerCase().includes(q))
+  );
+  if (sub) sub.textContent = `${items.length} platos${q || cat!=='ALL' ? ' (filtrados)' : ''}`;
+  if (!items.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--g400);padding:30px;">Sin platos.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = items.map(d => {
+    const fc      = d.fc_pct != null ? d.fc_pct.toFixed(1) : '–';
+    const fcBar   = d.fc_pct != null ? Math.min(d.fc_pct, 60) * (100/60) : 0;
+    const fcCls   = d.fc_pct == null ? 'ok' : d.fc_pct <= FC_TARGET_OK ? 'ok' : d.fc_pct <= FC_TARGET_MAX ? 'warn' : 'alert';
+    const fcColor = d.fc_pct == null ? '' : d.fc_pct > FC_TARGET_MAX ? 'color:var(--red);font-weight:700' : d.fc_pct <= FC_TARGET_OK ? 'color:var(--green);font-weight:700' : 'color:var(--amber-d);font-weight:600';
+    const catC    = CAT_COLORS_MENU[d.categoria]||'#9ca3af';
+    const recipeBadge = d.tiene_receta
+      ? '<span style="font-size:9px;background:#dcfce7;color:#15803d;padding:1px 5px;border-radius:3px;margin-left:4px;font-weight:700;">RECETA</span>'
+      : '<span style="font-size:9px;background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:3px;margin-left:4px;font-weight:700;" title="Sin receta detallada — costo manual">FIJO</span>';
+    let sugCell = '<span class="pvp-sug-mute">—</span>';
+    if (d.pvp_sugerido != null) {
+      if (d.excede_fc) {
+        sugCell = `<span class="pvp-sug">↑ €${d.pvp_sugerido.toFixed(2)}</span><div style="font-size:10px;color:var(--g400);">@ ${FC_TARGET_MAX}%</div>`;
+      } else if (d.fc_pct != null && d.fc_pct < FC_TARGET_OK - 5) {
+        sugCell = `<span class="pvp-sug-mute">€${d.pvp_ideal.toFixed(2)} ideal</span>`;
+      } else {
+        sugCell = `<span style="color:var(--green);font-size:11px;font-weight:600;">✓ ok</span>`;
+      }
+    }
+    const costTooltip = `MP €${d.costo_mp.toFixed(2)} + servicio ${_costServicioPct}% (€${(d.costo_calc - d.costo_mp).toFixed(2)}) = €${d.costo_calc.toFixed(2)}`;
+    return `<tr style="cursor:pointer;" onclick="openPlatoPanel(${d.id})">
+      <td style="font-weight:600;">${d.nombre}${recipeBadge}</td>
+      <td><span style="background:${catC}22;color:${catC};border-radius:6px;padding:2px 7px;font-size:11px;font-weight:600;">${d.categoria}</span></td>
+      <td class="r">€${(d.precio_venta||0).toFixed(2)}</td>
+      <td class="r" title="${costTooltip}">
+        €${d.costo_calc.toFixed(2)}
+        <div style="font-size:9px;color:var(--g400);">MP €${d.costo_mp.toFixed(2)}</div>
+      </td>
+      <td class="r" style="${fcColor}">
+        ${fc}%
+        <div class="fc-bar-wrap"><div class="fc-bar-fill ${fcCls}" style="width:${fcBar}%"></div></div>
+      </td>
+      <td class="r" style="font-weight:600;">€${(((d.precio_venta||0) - d.costo_calc)).toFixed(2)}</td>
+      <td class="r">${sugCell}</td>
+      <td><div style="display:flex;gap:4px;" onclick="event.stopPropagation()">
+        <button class="btn-sec" style="padding:4px 8px;font-size:11px;" onclick="openPlatoPanel(${d.id})">✏</button>
+        <button class="btn-sec" style="padding:4px 8px;font-size:11px;color:var(--red);" onclick="deletePlato(${d.id})">🗑</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+async function openPlatoPanel(editId = null) {
+  // asegurar cache de ingredientes
+  _ingredientesCache = await dbGetAll('ingredientes');
   const isEdit = editId != null;
+  const dish = isEdit ? await dbGet('escandallos', Number(editId)) : null;
+  _editPlatoRecipe = dish && dish.recipe ? JSON.parse(JSON.stringify(dish.recipe)) : [];
+
   openPanel(isEdit ? 'Editar plato' : 'Nuevo plato', '',
     `<div id="form-plato">
       <input type="hidden" id="pl-edit-id" value="${isEdit ? editId : ''}"/>
       <div class="fg"><label class="fl">Nombre del plato</label>
-        <input class="fi" type="text" id="pl-nombre" placeholder="Entraña Argentina, Provoleta..."/></div>
-      <div class="fg"><label class="fl">Categoría</label>
-        <select class="fi" id="pl-cat">
-          <option>Para Empezar</option><option>Vegetales</option><option>Carnes</option>
-          <option>Complementos</option><option>Dulces</option><option>Otros</option>
-        </select></div>
+        <input class="fi" type="text" id="pl-nombre" placeholder="Entraña con chimichurri..."/></div>
       <div class="fg-row c2">
+        <div><label class="fl">Categoría</label>
+          <select class="fi" id="pl-cat">
+            <option>Para Empezar</option><option>Vegetales</option><option>Carnes</option>
+            <option>Complementos</option><option>Dulces</option><option>Otros</option>
+          </select></div>
         <div><label class="fl">Precio venta (€)</label>
           <input class="fi" type="number" id="pl-precio" placeholder="0.00" step="0.01" min="0" inputmode="decimal" oninput="updateFCPreview()"/></div>
-        <div><label class="fl">Costo total (€)</label>
-          <input class="fi" type="number" id="pl-costo" placeholder="0.00" step="0.01" min="0" inputmode="decimal" oninput="updateFCPreview()"/></div>
       </div>
-      <div id="pl-fc-preview" style="background:var(--g100);border-radius:8px;padding:10px;font-size:13px;margin-bottom:4px;min-height:36px;"></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px;">
+        <label class="fl" style="margin:0;">🥩 Receta — ingredientes</label>
+        <button class="btn-sec" style="padding:4px 10px;font-size:11px;" onclick="addRecipeRow()">＋ Añadir</button>
+      </div>
+      <div id="recipe-rows" style="margin-bottom:6px;"></div>
+      <div id="recipe-preview" class="recipe-cost-preview" style="display:none;"></div>
+
+      <div class="fg" style="margin-top:14px;"><label class="fl">Costo total fijo <span style="font-weight:400;color:var(--g400);">— solo si no usás receta</span></label>
+        <input class="fi" type="number" id="pl-costo" placeholder="0.00" step="0.01" min="0" inputmode="decimal" oninput="updateFCPreview()"/></div>
+
+      <div id="pl-fc-preview" style="background:var(--g100);border-radius:8px;padding:10px;font-size:13px;margin-bottom:8px;min-height:36px;"></div>
+
       <div class="fg"><label class="fl">Unidades vendidas / mes <span style="font-weight:400;color:var(--g400);">estimado</span></label>
         <input class="fi" type="number" id="pl-ventas" placeholder="0" min="0" step="1" inputmode="numeric"/></div>
       <div class="fg"><label class="fl">Descripción <span style="font-weight:400;color:var(--g400);">opcional</span></label>
@@ -4073,31 +4567,108 @@ function openPlatoPanel(editId = null) {
       <button class="btn-primary" onclick="submitPlato()">${isEdit ? 'Actualizar plato' : 'Guardar plato'}</button>
     </div>`
   );
-  if (isEdit) loadPlatoForEdit(editId);
+  if (isEdit && dish) {
+    document.getElementById('pl-nombre').value = dish.nombre      || '';
+    document.getElementById('pl-cat').value    = dish.categoria   || 'Para Empezar';
+    document.getElementById('pl-precio').value = dish.precio_venta|| '';
+    document.getElementById('pl-costo').value  = dish.costo_total || '';
+    document.getElementById('pl-ventas').value = dish.ventas_mes  || '';
+    document.getElementById('pl-desc').value   = dish.descripcion || '';
+  }
+  renderRecipeRows();
+  updateFCPreview();
+}
+
+function renderRecipeRows() {
+  const wrap = document.getElementById('recipe-rows');
+  if (!wrap) return;
+  if (!_editPlatoRecipe.length) {
+    wrap.innerHTML = '<div style="font-size:11px;color:var(--g400);padding:8px;text-align:center;background:var(--g50);border-radius:8px;">Sin ingredientes — el costo se calcula del campo "Costo total fijo" más abajo</div>';
+    updateRecipePreview();
+    return;
+  }
+  const ingOpts = (_ingredientesCache||[]).map(i =>
+    `<option value="${i.id}">${i.nombre} — €${Number(i.precio).toFixed(2)}/${i.unidad}</option>`
+  ).join('');
+  wrap.innerHTML = _editPlatoRecipe.map((r, idx) => {
+    const ing = _ingredientesCache.find(i => i.id === r.ing_id);
+    const unidad = ing ? ing.unidad : '';
+    const mermaDef = ing ? ing.merma : 0;
+    return `<div class="recipe-row">
+      <select onchange="updateRecipeIng(${idx}, this.value)">
+        <option value="">— ingrediente —</option>
+        ${ingOpts.replace(`value="${r.ing_id}"`, `value="${r.ing_id}" selected`)}
+      </select>
+      <input type="number" step="0.001" min="0" placeholder="cant" value="${r.cantidad||''}" oninput="updateRecipeQty(${idx}, this.value)"/>
+      <input type="number" step="1" min="0" max="80" placeholder="${mermaDef}%" value="${r.merma_override ?? ''}" oninput="updateRecipeMerma(${idx}, this.value)" title="Merma % override (vacío = ${mermaDef}% por defecto)"/>
+      <button class="ing-btn-del" onclick="removeRecipeRow(${idx})">×</button>
+    </div>`;
+  }).join('');
+  updateRecipePreview();
+}
+function addRecipeRow() {
+  _editPlatoRecipe.push({ ing_id: null, cantidad: 0, merma_override: null });
+  renderRecipeRows();
+}
+function removeRecipeRow(idx) {
+  _editPlatoRecipe.splice(idx, 1);
+  renderRecipeRows();
+}
+function updateRecipeIng(idx, val) {
+  _editPlatoRecipe[idx].ing_id = val ? Number(val) : null;
+  renderRecipeRows();
+}
+function updateRecipeQty(idx, val) {
+  _editPlatoRecipe[idx].cantidad = Number(val) || 0;
+  updateRecipePreview();
+}
+function updateRecipeMerma(idx, val) {
+  _editPlatoRecipe[idx].merma_override = val === '' ? null : Number(val);
+  updateRecipePreview();
+}
+function updateRecipePreview() {
+  const box = document.getElementById('recipe-preview');
+  if (!box) return;
+  const valid = _editPlatoRecipe.filter(r => r.ing_id && r.cantidad > 0);
+  if (!valid.length) { box.style.display = 'none'; updateFCPreview(); return; }
+  const { cost, breakdown } = calcRecipeCost(valid);
+  const lines = breakdown.map(b =>
+    `<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--g600);padding:2px 0;">
+      <span>${b.ing.nombre} <span style="color:var(--g400);">(${b.cantidad}${b.ing.unidad} · merma ${b.merma}%)</span></span>
+      <span>€${b.subt.toFixed(3)}</span>
+    </div>`
+  ).join('');
+  // override pl-costo
+  const pc = document.getElementById('pl-costo');
+  if (pc) pc.value = cost.toFixed(2);
+  box.style.display = '';
+  box.innerHTML = `<div class="label">Costo calculado de la receta</div>
+    <div style="font-size:18px;color:var(--amber-d);font-weight:800;margin-top:2px;">€${cost.toFixed(2)}</div>
+    <div style="margin-top:8px;border-top:1px dashed #fed7aa;padding-top:6px;">${lines}</div>`;
+  updateFCPreview();
 }
 
 function updateFCPreview() {
-  const p = parseFloat(document.getElementById('pl-precio')?.value) || 0;
-  const c = parseFloat(document.getElementById('pl-costo')?.value)  || 0;
-  const el = document.getElementById('pl-fc-preview');
+  const p   = parseFloat(document.getElementById('pl-precio')?.value) || 0;
+  const cMP = parseFloat(document.getElementById('pl-costo')?.value)  || 0;
+  const el  = document.getElementById('pl-fc-preview');
   if (!el) return;
-  if (!p || !c) { el.innerHTML = ''; return; }
-  const fc = (c/p*100).toFixed(1);
-  const m  = (p-c).toFixed(2);
-  const col= fc>35?'var(--red)':fc<25?'var(--green)':'var(--amber)';
-  el.innerHTML = `<span style="font-weight:800;color:${col};">FC: ${fc}%</span> &nbsp;·&nbsp; Margen: <strong>€${m}</strong>`;
-}
-
-async function loadPlatoForEdit(id) {
-  const d = await dbGet('escandallos', Number(id));
-  if (!d) return;
-  document.getElementById('pl-nombre').value = d.nombre      || '';
-  document.getElementById('pl-cat').value    = d.categoria   || 'Para Empezar';
-  document.getElementById('pl-precio').value = d.precio_venta|| '';
-  document.getElementById('pl-costo').value  = d.costo_total || '';
-  document.getElementById('pl-ventas').value = d.ventas_mes  || '';
-  document.getElementById('pl-desc').value   = d.descripcion || '';
-  updateFCPreview();
+  if (!p && !cMP) { el.innerHTML = '<span style="color:var(--g400);font-size:11px;">Completá precio y costo para ver el food cost</span>'; return; }
+  const cExtra = cMP * (_costServicioPct/100);
+  const cTot   = cMP + cExtra;
+  if (!p) { el.innerHTML = `<span style="color:var(--g600);">Costo total €${cTot.toFixed(2)} (MP €${cMP.toFixed(2)} + servicio ${_costServicioPct}% €${cExtra.toFixed(2)}) · falta PVP</span>`; return; }
+  if (!cMP) { el.innerHTML = `<span style="color:var(--g600);">PVP €${p.toFixed(2)} · falta costo</span>`; return; }
+  const fc = (cTot/p*100);
+  const m  = (p-cTot).toFixed(2);
+  const col= fc>FC_TARGET_MAX?'var(--red)':fc<=FC_TARGET_OK?'var(--green)':'var(--amber-d)';
+  const pvpSug = (cTot / (FC_TARGET_MAX/100)).toFixed(2);
+  const sug = fc > FC_TARGET_MAX ? `<div style="font-size:11px;color:var(--red);margin-top:4px;">⚠ Excede techo ${FC_TARGET_MAX}% — PVP sugerido: <strong>€${pvpSug}</strong></div>` : '';
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--g500);margin-bottom:3px;">
+      <span>MP €${cMP.toFixed(2)} + servicio (${_costServicioPct}%) €${cExtra.toFixed(2)}</span>
+      <span>= total <strong style="color:var(--g900);">€${cTot.toFixed(2)}</strong></span>
+    </div>
+    <span style="font-weight:800;color:${col};">FC: ${fc.toFixed(1)}%</span> &nbsp;·&nbsp; Margen: <strong>€${m}</strong>${sug}`;
 }
 
 async function submitPlato() {
@@ -4106,11 +4677,16 @@ async function submitPlato() {
   const nombre = document.getElementById('pl-nombre')?.value?.trim();
   if (!nombre) { toast('El nombre es obligatorio', 'err'); return; }
 
+  const recipe = _editPlatoRecipe.filter(r => r.ing_id && Number(r.cantidad) > 0);
+  let costo_total = parseFloat(document.getElementById('pl-costo')?.value) || 0;
+  if (recipe.length) costo_total = calcRecipeCost(recipe).cost;
+
   const obj = {
     nombre,
     categoria:    document.getElementById('pl-cat')?.value    || 'Para Empezar',
     precio_venta: parseFloat(document.getElementById('pl-precio')?.value) || 0,
-    costo_total:  parseFloat(document.getElementById('pl-costo')?.value)  || 0,
+    costo_total,
+    recipe,
     ventas_mes:   parseInt(document.getElementById('pl-ventas')?.value)   || 0,
     descripcion:  document.getElementById('pl-desc')?.value?.trim()       || '',
     activo:       true,
@@ -4126,6 +4702,7 @@ async function submitPlato() {
   }
   closePanel();
   refreshMenu();
+  if (state.tab === 'recetario') refreshRecetario();
 }
 
 async function deletePlato(id) {
@@ -4133,6 +4710,7 @@ async function deletePlato(id) {
   await dbDelete('escandallos', Number(id));
   toast('Plato eliminado');
   refreshMenu();
+  if (state.tab === 'recetario') refreshRecetario();
 }
 
 async function updateVentasMes(id, val) {
@@ -4141,6 +4719,330 @@ async function updateVentasMes(id, val) {
   d.ventas_mes = parseInt(val) || 0;
   await dbPut('escandallos', d);
   await refreshMenu();
+}
+
+// ═══════════════════════════════════════════════════════
+//  INGREDIENTES — CRUD + Histórico de precios
+// ═══════════════════════════════════════════════════════
+
+async function renderIngredientesList() {
+  const tbody = document.getElementById('ing-tbody');
+  const sub   = document.getElementById('ing-table-sub');
+  if (!tbody) return;
+  const all  = await dbGetAll('ingredientes');
+  _ingredientesCache = all;
+  const dishes = await dbGetAll('escandallos');
+  const hist  = await dbGetAll('precio_historico');
+
+  const q   = (document.getElementById('ing-search')?.value || '').toLowerCase().trim();
+  const cat = document.getElementById('ing-filter-cat')?.value || 'ALL';
+  const items = all.filter(i =>
+    (cat === 'ALL' || i.categoria === cat) &&
+    (!q || i.nombre.toLowerCase().includes(q) || (i.proveedor||'').toLowerCase().includes(q))
+  );
+
+  if (sub) sub.textContent = `${all.length} ingredientes · ${items.length} mostrados`;
+  if (!items.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--g400);padding:30px;">Sin ingredientes que coincidan.</td></tr>';
+    return;
+  }
+  const cutoff = Date.now() - 30*24*3600*1000;
+  tbody.innerHTML = items.map(i => {
+    const usos = dishes.filter(d => d.recipe && d.recipe.some(r => r.ing_id === i.id)).length;
+    const histIng = hist.filter(h => h.ing_id === i.id && new Date(h.fecha).getTime() > cutoff);
+    let delta30 = '<span style="color:var(--g400);">—</span>';
+    if (histIng.length) {
+      const oldest = histIng.sort((a,b) => new Date(a.fecha) - new Date(b.fecha))[0];
+      const diff = i.precio - oldest.viejo;
+      const pct  = oldest.viejo > 0 ? (diff/oldest.viejo*100) : 0;
+      const cls  = diff > 0 ? 'color:var(--red);font-weight:700' : diff < 0 ? 'color:var(--green);font-weight:700' : '';
+      const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '·';
+      delta30 = `<span style="${cls}">${arrow} ${pct.toFixed(1)}%</span>`;
+    }
+    return `<tr>
+      <td style="font-weight:600;">${i.nombre}</td>
+      <td><span style="background:var(--g100);color:var(--g600);border-radius:6px;padding:2px 7px;font-size:11px;font-weight:600;">${i.categoria}</span></td>
+      <td><span style="font-size:11px;color:var(--g600);">${i.proveedor||'<i style=\"color:var(--g400);\">—</i>'}</span></td>
+      <td class="r" style="font-weight:700;">€${Number(i.precio).toFixed(2)}</td>
+      <td class="r">${i.unidad}</td>
+      <td class="r">${i.merma}%</td>
+      <td class="r"><span style="font-size:11px;color:var(--g500);">${usos} ${usos===1?'plato':'platos'}</span></td>
+      <td class="r">${delta30}</td>
+      <td><div style="display:flex;gap:4px;">
+        <button class="btn-sec" style="padding:4px 8px;font-size:11px;" onclick="quickUpdatePrecio(${i.id})">€</button>
+        <button class="btn-sec" style="padding:4px 8px;font-size:11px;" onclick="openIngredientePanel(${i.id})">✏</button>
+        <button class="btn-sec" style="padding:4px 8px;font-size:11px;color:var(--red);" onclick="deleteIngrediente(${i.id})">🗑</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+async function openIngredientePanel(editId = null) {
+  const isEdit = editId != null;
+  const ing = isEdit ? await dbGet('ingredientes', Number(editId)) : null;
+  openPanel(isEdit ? 'Editar ingrediente' : 'Nuevo ingrediente', '',
+    `<div id="form-ing">
+      <input type="hidden" id="ing-edit-id" value="${isEdit ? editId : ''}"/>
+      <div class="fg"><label class="fl">Nombre</label>
+        <input class="fi" type="text" id="ing-nombre" placeholder="Ej: Vacío Angus"/></div>
+      <div class="fg-row c2">
+        <div><label class="fl">Categoría</label>
+          <select class="fi" id="ing-cat">
+            <option>Carne</option><option>Pescado</option><option>Vegetal</option>
+            <option>Lácteo</option><option>Seco / Cereal</option><option>Salsa / Aderezo</option>
+            <option>Bebida</option><option>Otro</option>
+          </select></div>
+        <div><label class="fl">Unidad</label>
+          <select class="fi" id="ing-unidad">
+            <option value="kg">kg</option><option value="un">un</option><option value="lt">lt</option>
+          </select></div>
+      </div>
+      <div class="fg-row c2">
+        <div><label class="fl">Precio actual (€)</label>
+          <input class="fi" type="number" id="ing-precio" step="0.01" min="0" inputmode="decimal"/></div>
+        <div><label class="fl">Merma estándar %</label>
+          <input class="fi" type="number" id="ing-merma" step="1" min="0" max="80" inputmode="numeric"/></div>
+      </div>
+      <div class="fg"><label class="fl">Proveedor <span style="font-weight:400;color:var(--g400);">opcional</span></label>
+        <input class="fi" type="text" id="ing-prov" placeholder="Ej: Can Ramos"/></div>
+      <button class="btn-primary" onclick="submitIngrediente()">${isEdit ? 'Actualizar' : 'Guardar'}</button>
+    </div>`
+  );
+  if (isEdit && ing) {
+    document.getElementById('ing-nombre').value = ing.nombre || '';
+    document.getElementById('ing-cat').value    = ing.categoria || 'Carne';
+    document.getElementById('ing-unidad').value = ing.unidad || 'kg';
+    document.getElementById('ing-precio').value = ing.precio || 0;
+    document.getElementById('ing-merma').value  = ing.merma || 0;
+    document.getElementById('ing-prov').value   = ing.proveedor || '';
+  }
+}
+
+async function submitIngrediente() {
+  const rawId  = document.getElementById('ing-edit-id')?.value;
+  const editId = rawId ? Number(rawId) : null;
+  const nombre = document.getElementById('ing-nombre')?.value?.trim();
+  if (!nombre) { toast('El nombre es obligatorio', 'err'); return; }
+  const obj = {
+    nombre,
+    categoria: document.getElementById('ing-cat')?.value || 'Otro',
+    unidad:    document.getElementById('ing-unidad')?.value || 'kg',
+    precio:    parseFloat(document.getElementById('ing-precio')?.value) || 0,
+    merma:     parseInt(document.getElementById('ing-merma')?.value)    || 0,
+    proveedor: document.getElementById('ing-prov')?.value?.trim()       || '',
+    ts: Date.now(),
+  };
+  if (editId) {
+    const prev = await dbGet('ingredientes', editId);
+    if (prev && prev.precio !== obj.precio) {
+      await dbAdd('precio_historico', {
+        ing_id: editId, ing_nombre: obj.nombre,
+        viejo: prev.precio, nuevo: obj.precio,
+        fecha: new Date().toISOString().slice(0,10), nota: 'Edición manual',
+      });
+    }
+    obj.id = editId;
+    await dbPut('ingredientes', obj);
+    toast('Ingrediente actualizado ✓');
+  } else {
+    await dbAdd('ingredientes', obj);
+    toast('Ingrediente añadido ✓');
+  }
+  closePanel();
+  await renderIngredientesList();
+  await refreshMenu();
+}
+
+async function deleteIngrediente(id) {
+  const dishes = await dbGetAll('escandallos');
+  const usos = dishes.filter(d => d.recipe && d.recipe.some(r => r.ing_id === Number(id))).length;
+  const msg = usos > 0
+    ? `Este ingrediente se usa en ${usos} receta(s). ¿Eliminar igualmente? (las recetas mantendrán el costo último calculado)`
+    : '¿Eliminar este ingrediente?';
+  if (!confirm(msg)) return;
+  await dbDelete('ingredientes', Number(id));
+  toast('Ingrediente eliminado');
+  await renderIngredientesList();
+  await refreshMenu();
+}
+
+async function quickUpdatePrecio(id) {
+  const ing = await dbGet('ingredientes', Number(id));
+  if (!ing) return;
+  const nuevo = prompt(`Actualizar precio de "${ing.nombre}"\nActual: €${ing.precio.toFixed(2)}/${ing.unidad}\n\nNuevo precio (€/${ing.unidad}):`, ing.precio);
+  if (nuevo === null || nuevo === '') return;
+  const n = Number(nuevo);
+  if (isNaN(n) || n < 0) { toast('Precio inválido', 'err'); return; }
+  const nota = prompt('Nota / origen (opcional):', 'Actualización rápida') || '';
+  await dbAdd('precio_historico', {
+    ing_id: ing.id, ing_nombre: ing.nombre,
+    viejo: ing.precio, nuevo: n,
+    fecha: new Date().toISOString().slice(0,10), nota,
+  });
+  ing.precio = n;
+  ing.ts = Date.now();
+  await dbPut('ingredientes', ing);
+  toast('Precio actualizado ✓');
+  await renderIngredientesList();
+  await refreshMenu();
+  if (state.tab === 'recetario') await refreshRecetario();
+}
+
+// ── MATCHING FACTURA → INGREDIENTES (parser de líneas OCR + UI) ──
+// Heurística simple: busca líneas con patrón "<descripción> <cantidad>kg <precio>€/kg"
+// o variantes. El usuario confirma cada match manualmente.
+function parseOCRLines(rawText) {
+  if (!rawText) return [];
+  const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const out = [];
+  // patrón €/kg, €/un, €/lt
+  const reqPx = /(\d+[.,]\d{2,4})\s*(?:€|EUR)?\s*\/\s*(kg|un|lt|l|u)/i;
+  // patrón simple precio al final
+  const rePxEnd = /(\d+[.,]\d{2,4})\s*(?:€|EUR)?\s*$/;
+  // patrón cantidad
+  const reQty = /(\d+[.,]?\d*)\s*(kg|gr|g|un|u|lt|l)/i;
+  lines.forEach(line => {
+    if (line.length < 5) return;
+    const mPx = line.match(reqPx) || line.match(rePxEnd);
+    if (!mPx) return;
+    const px = parseFloat(mPx[1].replace(',', '.'));
+    if (isNaN(px) || px <= 0 || px > 200) return; // filtrar ruido
+    // descripción = texto antes del primer dígito relevante
+    let desc = line.replace(reqPx,'').replace(rePxEnd,'').replace(reQty,'').trim();
+    desc = desc.replace(/^\d+[\.\)x×]?\s*/,'').replace(/\s{2,}/g,' ').slice(0, 60);
+    if (desc.length < 3) return;
+    out.push({ desc, precio: px });
+  });
+  return out;
+}
+
+// Fuzzy match básico: solapamiento de tokens
+function matchIngrediente(desc, ingredientes) {
+  const tokens = desc.toLowerCase().split(/[\s\-\/]+/).filter(t => t.length > 2);
+  let best = null, bestScore = 0;
+  for (const ing of ingredientes) {
+    const ingTokens = ing.nombre.toLowerCase().split(/[\s\-\/]+/);
+    let score = 0;
+    tokens.forEach(t => { if (ingTokens.some(it => it.includes(t) || t.includes(it))) score++; });
+    if (score > bestScore) { bestScore = score; best = ing; }
+  }
+  return bestScore > 0 ? best : null;
+}
+
+async function openFCMatchPanel(facturaId, proveedor, fecha, ocrRaw) {
+  _ingredientesCache = await dbGetAll('ingredientes');
+  const parsedLines = parseOCRLines(ocrRaw);
+
+  // Si OCR no detecta líneas, mostrar UI de selección manual
+  const linesHtml = parsedLines.length
+    ? parsedLines.map((l, i) => {
+        const match = matchIngrediente(l.desc, _ingredientesCache);
+        const ingOpts = _ingredientesCache.map(ing =>
+          `<option value="${ing.id}" ${match && match.id === ing.id ? 'selected' : ''}>${ing.nombre} (€${ing.precio.toFixed(2)}/${ing.unidad})</option>`
+        ).join('');
+        return `<tr>
+          <td style="font-size:11px;max-width:200px;">${l.desc}</td>
+          <td class="r" style="font-weight:700;">€${l.precio.toFixed(2)}</td>
+          <td>
+            <select class="fi" style="font-size:11px;padding:4px 6px;" id="fcm-ing-${i}">
+              <option value="">— no matchear —</option>${ingOpts}
+            </select>
+          </td>
+          <td style="text-align:center;">
+            <input type="checkbox" id="fcm-chk-${i}" ${match ? 'checked' : ''} style="accent-color:var(--amber);transform:scale(1.2);"/>
+          </td>
+        </tr>`;
+      }).join('')
+    : `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--g400);font-size:12px;">
+        El OCR no detectó líneas de productos. Podés actualizar precios manualmente desde el catálogo de Ingredientes.
+      </td></tr>`;
+
+  openPanel('Actualizar Food Cost desde factura',
+    `Proveedor: <strong>${proveedor}</strong> · Fecha: ${fecha}`,
+    `<div id="form-fcmatch">
+      <input type="hidden" id="fcm-fact-id" value="${facturaId}"/>
+      <input type="hidden" id="fcm-fact-prov" value="${proveedor}"/>
+      <input type="hidden" id="fcm-fact-fecha" value="${fecha}"/>
+      <p style="font-size:11px;color:var(--g500);background:#fffbeb;border:1px solid #fed7aa;border-radius:8px;padding:10px;margin-bottom:14px;">
+        Revisá cada línea: el OCR sugirió el match con un ingrediente existente. Confirmá con la casilla y guardá — los escandallos se recalculan automáticamente.
+      </p>
+      <div class="tbl-wrap">
+        <table class="tbl" style="font-size:11px;">
+          <thead><tr>
+            <th>Línea OCR detectada</th>
+            <th class="r">€/un</th>
+            <th>Ingrediente catálogo</th>
+            <th style="text-align:center;">✓</th>
+          </tr></thead>
+          <tbody>${linesHtml}</tbody>
+        </table>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:8px;margin-top:14px;">
+        <button class="btn-sec" onclick="closePanel()">Saltar</button>
+        <button class="btn-primary" onclick="applyFCMatch(${parsedLines.length})">Aplicar precios y recalcular</button>
+      </div>
+    </div>`
+  );
+  // guardar parsedLines en window para applyFCMatch
+  window._fcmLines = parsedLines;
+}
+
+async function applyFCMatch(n) {
+  const proveedor = qEl('fcm-fact-prov')?.value || '';
+  const fecha     = qEl('fcm-fact-fecha')?.value || new Date().toISOString().slice(0,10);
+  const lines     = window._fcmLines || [];
+  let updates = 0;
+  for (let i = 0; i < n; i++) {
+    const chk  = qEl('fcm-chk-' + i);
+    const sel  = qEl('fcm-ing-' + i);
+    if (!chk?.checked || !sel?.value) continue;
+    const ingId = Number(sel.value);
+    const ing = await dbGet('ingredientes', ingId);
+    if (!ing) continue;
+    const nuevoPrecio = lines[i].precio;
+    if (ing.precio === nuevoPrecio) continue;
+    await dbAdd('precio_historico', {
+      ing_id: ing.id, ing_nombre: ing.nombre,
+      viejo: ing.precio, nuevo: nuevoPrecio,
+      fecha, nota: `Factura ${proveedor}`,
+    });
+    ing.precio = nuevoPrecio;
+    ing.proveedor = ing.proveedor || proveedor;
+    ing.ts = Date.now();
+    await dbPut('ingredientes', ing);
+    updates++;
+  }
+  closePanel();
+  toast(updates ? `${updates} precio(s) actualizados ✓` : 'Sin cambios aplicados');
+  await refreshMenu();
+  if (state.tab === 'recetario') await refreshRecetario();
+  if (_recSubtab === 'ingredientes') await renderIngredientesList();
+  if (_recSubtab === 'historico')    await renderHistoricoList();
+}
+
+async function renderHistoricoList() {
+  const tbody = document.getElementById('hist-tbody');
+  if (!tbody) return;
+  const all = await dbGetAll('precio_historico');
+  if (!all.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--g400);padding:30px;">Sin movimientos de precio.</td></tr>';
+    return;
+  }
+  const sorted = all.sort((a,b) => (b.fecha||'').localeCompare(a.fecha||''));
+  tbody.innerHTML = sorted.map(h => {
+    const diff = h.nuevo - h.viejo;
+    const pct  = h.viejo > 0 ? (diff/h.viejo*100) : 0;
+    const cls  = diff > 0 ? 'color:var(--red);font-weight:700' : diff < 0 ? 'color:var(--green);font-weight:700' : '';
+    const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '·';
+    return `<tr>
+      <td style="font-size:11px;color:var(--g500);">${h.fecha}</td>
+      <td style="font-weight:600;">${h.ing_nombre}</td>
+      <td class="r">€${h.viejo.toFixed(2)}</td>
+      <td class="r" style="font-weight:700;">€${h.nuevo.toFixed(2)}</td>
+      <td class="r" style="${cls}">${arrow} €${Math.abs(diff).toFixed(2)} (${pct.toFixed(1)}%)</td>
+      <td style="font-size:11px;color:var(--g500);">${h.nota || ''}</td>
+    </tr>`;
+  }).join('');
 }
 
 // ── VENTAS SEED ────────────────────────────────────────
@@ -4197,6 +5099,10 @@ async function init() {
 
     step('Cargando escandallos…');
     await seedEscandallos();
+
+    step('Cargando ingredientes…');
+    await seedIngredientes();
+    _costServicioPct = await dbGetConfig('cost_servicio_pct', COST_SERVICIO_PCT_DEFAULT);
 
     step('Renderizando…');
     // Render inicial
