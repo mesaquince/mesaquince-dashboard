@@ -4596,20 +4596,32 @@ function renderRecipeRows() {
       return `<div style="background:#fef3c7;border:1.5px solid #fbbf24;border-radius:8px;padding:10px;margin-bottom:8px;">
         <div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:8px;">＋ Nuevo ingrediente para esta receta</div>
         <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px;margin-bottom:6px;">
-          <input type="text" id="qci-nombre-${idx}" placeholder="Nombre (ej: Cebolla morada)" style="font-size:11px;padding:6px 8px;border:1px solid var(--g300);border-radius:6px;"/>
+          <input type="text" id="qci-nombre-${idx}" placeholder="Nombre (ej: Patatas McCain)" style="font-size:11px;padding:6px 8px;border:1px solid var(--g300);border-radius:6px;"/>
           <select id="qci-cat-${idx}" style="font-size:11px;padding:6px 8px;border:1px solid var(--g300);border-radius:6px;">
             <option>Carne</option><option>Pescado</option><option selected>Vegetal</option>
             <option>Lácteo</option><option>Seco / Cereal</option><option>Salsa / Aderezo</option>
             <option>Bebida</option><option>Otro</option>
           </select>
-          <select id="qci-un-${idx}" style="font-size:11px;padding:6px 8px;border:1px solid var(--g300);border-radius:6px;">
+          <select id="qci-un-${idx}" onchange="updateEnvaseLabel(${idx})" style="font-size:11px;padding:6px 8px;border:1px solid var(--g300);border-radius:6px;">
             <option value="kg">kg</option><option value="un">un</option><option value="lt">lt</option>
           </select>
         </div>
+
+        <!-- CALCULADORA DESDE ENVASE -->
+        <div style="background:#fffbeb;border:1px dashed #fbbf24;border-radius:6px;padding:8px;margin-bottom:8px;">
+          <div style="font-size:10px;font-weight:700;color:#92400e;margin-bottom:6px;">📦 ¿Comprás por bolsa/caja/garrafa? <span style="font-weight:400;">Llena estos campos y calculo el precio por <span id="qci-un-lbl-${idx}">kg</span> automáticamente:</span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+            <input type="number" step="0.01" min="0" id="qci-env-precio-${idx}" placeholder="Precio envase €" oninput="calcEnvasePrecio(${idx})" style="font-size:11px;padding:6px 8px;border:1px solid #fbbf24;border-radius:6px;background:white;"/>
+            <input type="number" step="0.001" min="0" id="qci-env-cant-${idx}" placeholder="Tamaño envase" oninput="calcEnvasePrecio(${idx})" style="font-size:11px;padding:6px 8px;border:1px solid #fbbf24;border-radius:6px;background:white;"/>
+            <div id="qci-env-result-${idx}" style="font-size:11px;padding:6px 8px;color:var(--g400);font-style:italic;display:flex;align-items:center;">= €0,00/un</div>
+          </div>
+          <div style="font-size:10px;color:var(--g500);margin-top:4px;">💡 Ej McCain: precio 10,07 · tamaño 2,5 → €4,03/kg. Siempre <strong>sin IVA</strong>.</div>
+        </div>
+
         <div style="display:grid;grid-template-columns:1fr 1fr 2fr;gap:6px;margin-bottom:8px;">
-          <input type="number" step="0.01" min="0" id="qci-precio-${idx}" placeholder="Precio €" style="font-size:11px;padding:6px 8px;border:1px solid var(--g300);border-radius:6px;"/>
+          <input type="number" step="0.0001" min="0" id="qci-precio-${idx}" placeholder="Precio €/un" style="font-size:11px;padding:6px 8px;border:1.5px solid var(--amber);border-radius:6px;background:#fff7ed;font-weight:700;"/>
           <input type="number" step="1" min="0" max="80" id="qci-merma-${idx}" placeholder="Merma %" value="0" style="font-size:11px;padding:6px 8px;border:1px solid var(--g300);border-radius:6px;"/>
-          <input type="text" id="qci-prov-${idx}" placeholder="Proveedor (opcional)" style="font-size:11px;padding:6px 8px;border:1px solid var(--g300);border-radius:6px;"/>
+          <input type="text" id="qci-prov-${idx}" placeholder="Proveedor (ej: MAKRO)" style="font-size:11px;padding:6px 8px;border:1px solid var(--g300);border-radius:6px;"/>
         </div>
         <div style="display:flex;gap:6px;justify-content:flex-end;">
           <button class="btn-sec" style="font-size:11px;padding:5px 12px;" onclick="cancelCreateInlineIng(${idx})">Cancelar</button>
@@ -4650,6 +4662,28 @@ function updateRecipeIng(idx, val) {
   }
   _editPlatoRecipe[idx].ing_id = val ? Number(val) : null;
   renderRecipeRows();
+}
+
+function calcEnvasePrecio(idx) {
+  const p = parseFloat(document.getElementById('qci-env-precio-' + idx)?.value);
+  const c = parseFloat(document.getElementById('qci-env-cant-' + idx)?.value);
+  const un = document.getElementById('qci-un-' + idx)?.value || 'kg';
+  const resultEl = document.getElementById('qci-env-result-' + idx);
+  const precioEl = document.getElementById('qci-precio-' + idx);
+  if (!p || !c || c <= 0) {
+    if (resultEl) resultEl.innerHTML = `= €0,00/${un}`;
+    return;
+  }
+  const unitPrice = p / c;
+  if (resultEl) resultEl.innerHTML = `<span style="color:var(--green);font-weight:700;">= €${unitPrice.toFixed(4)}/${un}</span> ✓`;
+  if (precioEl) precioEl.value = unitPrice.toFixed(4);
+}
+
+function updateEnvaseLabel(idx) {
+  const un = document.getElementById('qci-un-' + idx)?.value || 'kg';
+  const lbl = document.getElementById('qci-un-lbl-' + idx);
+  if (lbl) lbl.textContent = un;
+  calcEnvasePrecio(idx);
 }
 
 async function confirmCreateInlineIng(idx) {
@@ -4871,9 +4905,19 @@ async function openIngredientePanel(editId = null) {
             <option value="kg">kg</option><option value="un">un</option><option value="lt">lt</option>
           </select></div>
       </div>
+      <!-- Calculadora desde envase -->
+      <div style="background:#fffbeb;border:1px dashed #fbbf24;border-radius:8px;padding:10px 12px;margin-bottom:10px;">
+        <div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:6px;">📦 ¿Comprás por bolsa/caja/garrafa? Llená estos campos y calculo €/unidad</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          <input class="fi" type="number" step="0.01" min="0" id="ing-env-precio" placeholder="Precio envase €" oninput="calcEnvasePrecioMain()" style="font-size:12px;"/>
+          <input class="fi" type="number" step="0.001" min="0" id="ing-env-cant" placeholder="Tamaño envase" oninput="calcEnvasePrecioMain()" style="font-size:12px;"/>
+          <div id="ing-env-result" style="font-size:12px;display:flex;align-items:center;color:var(--g400);font-style:italic;">= €0,00/un</div>
+        </div>
+        <div style="font-size:10px;color:var(--g500);margin-top:5px;">💡 Ej McCain: precio 10,07 · tamaño 2,5 → €4,03/kg. Siempre <strong>sin IVA</strong>.</div>
+      </div>
       <div class="fg-row c2">
-        <div><label class="fl">Precio actual (€)</label>
-          <input class="fi" type="number" id="ing-precio" step="0.01" min="0" inputmode="decimal"/></div>
+        <div><label class="fl">Precio actual (€/unidad)</label>
+          <input class="fi" type="number" id="ing-precio" step="0.0001" min="0" inputmode="decimal" placeholder="por kg/un/lt — auto si usás calculadora"/></div>
         <div><label class="fl">Merma estándar %</label>
           <input class="fi" type="number" id="ing-merma" step="1" min="0" max="80" inputmode="numeric"/></div>
       </div>
@@ -4890,6 +4934,21 @@ async function openIngredientePanel(editId = null) {
     document.getElementById('ing-merma').value  = ing.merma || 0;
     document.getElementById('ing-prov').value   = ing.proveedor || '';
   }
+}
+
+function calcEnvasePrecioMain() {
+  const p = parseFloat(document.getElementById('ing-env-precio')?.value);
+  const c = parseFloat(document.getElementById('ing-env-cant')?.value);
+  const un = document.getElementById('ing-unidad')?.value || 'kg';
+  const resultEl = document.getElementById('ing-env-result');
+  const precioEl = document.getElementById('ing-precio');
+  if (!p || !c || c <= 0) {
+    if (resultEl) resultEl.innerHTML = `= €0,00/${un}`;
+    return;
+  }
+  const unitPrice = p / c;
+  if (resultEl) resultEl.innerHTML = `<span style="color:var(--green);font-weight:700;">= €${unitPrice.toFixed(4)}/${un}</span> ✓`;
+  if (precioEl) precioEl.value = unitPrice.toFixed(4);
 }
 
 async function submitIngrediente() {
