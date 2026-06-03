@@ -4591,13 +4591,39 @@ function renderRecipeRows() {
     `<option value="${i.id}">${i.nombre} — €${Number(i.precio).toFixed(2)}/${i.unidad}</option>`
   ).join('');
   wrap.innerHTML = _editPlatoRecipe.map((r, idx) => {
+    // Modo "crear nuevo ingrediente" inline
+    if (r._creating) {
+      return `<div style="background:#fef3c7;border:1.5px solid #fbbf24;border-radius:8px;padding:10px;margin-bottom:8px;">
+        <div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:8px;">＋ Nuevo ingrediente para esta receta</div>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px;margin-bottom:6px;">
+          <input type="text" id="qci-nombre-${idx}" placeholder="Nombre (ej: Cebolla morada)" style="font-size:11px;padding:6px 8px;border:1px solid var(--g300);border-radius:6px;"/>
+          <select id="qci-cat-${idx}" style="font-size:11px;padding:6px 8px;border:1px solid var(--g300);border-radius:6px;">
+            <option>Carne</option><option>Pescado</option><option selected>Vegetal</option>
+            <option>Lácteo</option><option>Seco / Cereal</option><option>Salsa / Aderezo</option>
+            <option>Bebida</option><option>Otro</option>
+          </select>
+          <select id="qci-un-${idx}" style="font-size:11px;padding:6px 8px;border:1px solid var(--g300);border-radius:6px;">
+            <option value="kg">kg</option><option value="un">un</option><option value="lt">lt</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 2fr;gap:6px;margin-bottom:8px;">
+          <input type="number" step="0.01" min="0" id="qci-precio-${idx}" placeholder="Precio €" style="font-size:11px;padding:6px 8px;border:1px solid var(--g300);border-radius:6px;"/>
+          <input type="number" step="1" min="0" max="80" id="qci-merma-${idx}" placeholder="Merma %" value="0" style="font-size:11px;padding:6px 8px;border:1px solid var(--g300);border-radius:6px;"/>
+          <input type="text" id="qci-prov-${idx}" placeholder="Proveedor (opcional)" style="font-size:11px;padding:6px 8px;border:1px solid var(--g300);border-radius:6px;"/>
+        </div>
+        <div style="display:flex;gap:6px;justify-content:flex-end;">
+          <button class="btn-sec" style="font-size:11px;padding:5px 12px;" onclick="cancelCreateInlineIng(${idx})">Cancelar</button>
+          <button class="btn-primary" style="font-size:11px;padding:5px 12px;" onclick="confirmCreateInlineIng(${idx})">Crear y usar</button>
+        </div>
+      </div>`;
+    }
     const ing = _ingredientesCache.find(i => i.id === r.ing_id);
-    const unidad = ing ? ing.unidad : '';
     const mermaDef = ing ? ing.merma : 0;
     return `<div class="recipe-row">
       <select onchange="updateRecipeIng(${idx}, this.value)">
         <option value="">— ingrediente —</option>
         ${ingOpts.replace(`value="${r.ing_id}"`, `value="${r.ing_id}" selected`)}
+        <option value="__NEW__" style="font-weight:700;color:#92400e;">＋ Crear nuevo ingrediente…</option>
       </select>
       <input type="number" step="0.001" min="0" placeholder="cant" value="${r.cantidad||''}" oninput="updateRecipeQty(${idx}, this.value)"/>
       <input type="number" step="1" min="0" max="80" placeholder="${mermaDef}%" value="${r.merma_override ?? ''}" oninput="updateRecipeMerma(${idx}, this.value)" title="Merma % override (vacío = ${mermaDef}% por defecto)"/>
@@ -4615,7 +4641,42 @@ function removeRecipeRow(idx) {
   renderRecipeRows();
 }
 function updateRecipeIng(idx, val) {
+  if (val === '__NEW__') {
+    _editPlatoRecipe[idx]._creating = true;
+    _editPlatoRecipe[idx].ing_id = null;
+    renderRecipeRows();
+    setTimeout(() => document.getElementById('qci-nombre-' + idx)?.focus(), 50);
+    return;
+  }
   _editPlatoRecipe[idx].ing_id = val ? Number(val) : null;
+  renderRecipeRows();
+}
+
+async function confirmCreateInlineIng(idx) {
+  const nombre = document.getElementById('qci-nombre-' + idx)?.value?.trim();
+  if (!nombre) { toast('Falta el nombre', 'err'); return; }
+  const precio = parseFloat(document.getElementById('qci-precio-' + idx)?.value);
+  if (isNaN(precio) || precio < 0) { toast('Precio inválido', 'err'); return; }
+  const obj = {
+    nombre,
+    categoria: document.getElementById('qci-cat-' + idx)?.value || 'Otro',
+    unidad:    document.getElementById('qci-un-'  + idx)?.value || 'kg',
+    precio,
+    merma:     parseInt(document.getElementById('qci-merma-' + idx)?.value) || 0,
+    proveedor: document.getElementById('qci-prov-' + idx)?.value?.trim() || '',
+    ts: Date.now(),
+  };
+  const newId = await dbAdd('ingredientes', obj);
+  _ingredientesCache = await dbGetAll('ingredientes');
+  _editPlatoRecipe[idx]._creating = false;
+  _editPlatoRecipe[idx].ing_id = newId;
+  toast(`"${nombre}" creado ✓ — €${precio.toFixed(2)}/${obj.unidad}`);
+  renderRecipeRows();
+}
+
+function cancelCreateInlineIng(idx) {
+  _editPlatoRecipe[idx]._creating = false;
+  _editPlatoRecipe[idx].ing_id = null;
   renderRecipeRows();
 }
 function updateRecipeQty(idx, val) {
@@ -4631,20 +4692,33 @@ function updateRecipePreview() {
   if (!box) return;
   const valid = _editPlatoRecipe.filter(r => r.ing_id && r.cantidad > 0);
   if (!valid.length) { box.style.display = 'none'; updateFCPreview(); return; }
-  const { cost, breakdown } = calcRecipeCost(valid);
+  const { cost: costMP, breakdown } = calcRecipeCost(valid);
+  const costExtra = costMP * (_costServicioPct / 100);
+  const costTotal = costMP + costExtra;
   const lines = breakdown.map(b =>
     `<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--g600);padding:2px 0;">
       <span>${b.ing.nombre} <span style="color:var(--g400);">(${b.cantidad}${b.ing.unidad} · merma ${b.merma}%)</span></span>
       <span>€${b.subt.toFixed(3)}</span>
     </div>`
   ).join('');
-  // override pl-costo
+  // override pl-costo con MP (la fórmula del modelo guarda MP, no total)
   const pc = document.getElementById('pl-costo');
-  if (pc) pc.value = cost.toFixed(2);
+  if (pc) pc.value = costMP.toFixed(2);
   box.style.display = '';
-  box.innerHTML = `<div class="label">Costo calculado de la receta</div>
-    <div style="font-size:18px;color:var(--amber-d);font-weight:800;margin-top:2px;">€${cost.toFixed(2)}</div>
-    <div style="margin-top:8px;border-top:1px dashed #fed7aa;padding-top:6px;">${lines}</div>`;
+  box.innerHTML = `
+    <div class="label">Coste materia prima</div>
+    <div style="font-size:14px;color:var(--g700);font-weight:700;">€${costMP.toFixed(2)}</div>
+    <div style="margin-top:6px;border-top:1px dashed #fed7aa;padding-top:6px;">${lines}</div>
+    <div style="margin-top:10px;padding-top:10px;border-top:2px solid #fbbf24;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--g600);">
+        <span>Coste servicio (${_costServicioPct}%)</span>
+        <span>+ €${costExtra.toFixed(2)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+        <span style="font-size:11px;font-weight:700;color:var(--g700);text-transform:uppercase;letter-spacing:0.5px;">Coste total plato</span>
+        <span style="font-size:20px;font-weight:800;color:var(--amber-d);">€${costTotal.toFixed(2)}</span>
+      </div>
+    </div>`;
   updateFCPreview();
 }
 
