@@ -4365,17 +4365,21 @@ function renderMenuTable(dishes) {
     const fcC = d.fc_pct != null ? (d.fc_pct>FC_TARGET_MAX?'color:var(--red);font-weight:700':d.fc_pct<=FC_TARGET_OK?'color:var(--green);font-weight:700':'color:var(--amber-d);font-weight:600') : '';
     const bcgE= {ESTRELLA:'⭐',VACA:'🐄',RETO:'🧩',PERRO:'🐕'}[d.bcg]||'–';
     const catC= CAT_COLORS_MENU[d.categoria]||'#9ca3af';
-    return `<tr>
+    const pvpEmpty = !d.precio_venta || d.precio_venta <= 0;
+    const pvpCell = pvpEmpty
+      ? '<span style="color:var(--amber-d);font-size:11px;font-style:italic;font-weight:600;">Sin PVP</span>'
+      : '€'+d.precio_venta.toFixed(2);
+    return `<tr style="${pvpEmpty?'background:#fffbeb;':''}">
       <td style="font-weight:600;">${d.nombre}</td>
       <td><span style="background:${catC}22;color:${catC};border-radius:6px;padding:2px 7px;font-size:11px;font-weight:600;">${d.categoria}</span></td>
-      <td class="r">€${(d.precio_venta||0).toFixed(2)}</td>
+      <td class="r">${pvpCell}</td>
       <td class="r">€${d.costo_calc.toFixed(2)}</td>
-      <td class="r" style="${fcC}">${fc}%</td>
-      <td class="r" style="font-weight:600;">€${d.margen_eur.toFixed(2)}</td>
+      <td class="r" style="${fcC}">${pvpEmpty?'<span class="cell-mute">—</span>':fc+'%'}</td>
+      <td class="r" style="font-weight:600;">${pvpEmpty?'<span class="cell-mute">—</span>':'€'+d.margen_eur.toFixed(2)}</td>
       <td class="r"><input type="number" value="${d.ventas_mes||0}" min="0" step="1"
         style="width:58px;text-align:right;border:1px solid var(--g200);border-radius:6px;padding:3px 6px;font-size:12px;"
         onchange="updateVentasMes(${d.id},this.value)"/></td>
-      <td class="r">€${d.rev_mes.toFixed(0)}</td>
+      <td class="r">${pvpEmpty?'<span class="cell-mute">—</span>':'€'+d.rev_mes.toFixed(0)}</td>
       <td style="font-size:18px;text-align:center;" title="${BCG_LABELS[d.bcg]||''}">${bcgE}</td>
       <td><div style="display:flex;gap:4px;">
         <button class="btn-sec" style="padding:4px 8px;font-size:11px;" onclick="openPlatoPanel(${d.id})">✏</button>
@@ -4493,9 +4497,12 @@ function renderRecetarioPlatos() {
     const recipeBadge = d.tiene_receta
       ? '<span style="font-size:9px;background:#dcfce7;color:#15803d;padding:1px 5px;border-radius:3px;margin-left:4px;font-weight:700;">RECETA</span>'
       : '<span style="font-size:9px;background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:3px;margin-left:4px;font-weight:700;" title="Sin receta detallada — costo manual">FIJO</span>';
+    const pvpEmpty = !d.precio_venta || d.precio_venta <= 0;
     let sugCell = '<span class="pvp-sug-mute">—</span>';
     if (d.pvp_sugerido != null) {
-      if (d.excede_fc) {
+      if (pvpEmpty) {
+        sugCell = `<span class="pvp-sug">€${d.pvp_sugerido.toFixed(2)}</span><div style="font-size:10px;color:var(--g400);">@ ${FC_TARGET_MAX}% (def. PVP)</div>`;
+      } else if (d.excede_fc) {
         sugCell = `<span class="pvp-sug">↑ €${d.pvp_sugerido.toFixed(2)}</span><div style="font-size:10px;color:var(--g400);">@ ${FC_TARGET_MAX}%</div>`;
       } else if (d.fc_pct != null && d.fc_pct < FC_TARGET_OK - 5) {
         sugCell = `<span class="pvp-sug-mute">€${d.pvp_ideal.toFixed(2)} ideal</span>`;
@@ -4504,19 +4511,23 @@ function renderRecetarioPlatos() {
       }
     }
     const costTooltip = `MP €${d.costo_mp.toFixed(2)} + servicio ${_costServicioPct}% (€${(d.costo_calc - d.costo_mp).toFixed(2)}) = €${d.costo_calc.toFixed(2)}`;
-    return `<tr style="cursor:pointer;" onclick="openPlatoPanel(${d.id})">
+    const pvpCell = pvpEmpty
+      ? `<span style="color:var(--amber-d);font-size:11px;font-style:italic;font-weight:600;">Sin PVP</span><div style="font-size:9px;color:var(--g400);">clic para definir</div>`
+      : `€${d.precio_venta.toFixed(2)}`;
+    const margenCell = pvpEmpty ? '<span class="cell-mute">—</span>' : `€${(d.precio_venta - d.costo_calc).toFixed(2)}`;
+    return `<tr style="cursor:pointer;${pvpEmpty?'background:#fffbeb;':''}" onclick="openPlatoPanel(${d.id})">
       <td style="font-weight:600;">${d.nombre}${recipeBadge}</td>
       <td><span style="background:${catC}22;color:${catC};border-radius:6px;padding:2px 7px;font-size:11px;font-weight:600;">${d.categoria}</span></td>
-      <td class="r">€${(d.precio_venta||0).toFixed(2)}</td>
+      <td class="r">${pvpCell}</td>
       <td class="r" title="${costTooltip}">
         €${d.costo_calc.toFixed(2)}
         <div style="font-size:9px;color:var(--g400);">MP €${d.costo_mp.toFixed(2)}</div>
       </td>
       <td class="r" style="${fcColor}">
-        ${fc}%
-        <div class="fc-bar-wrap"><div class="fc-bar-fill ${fcCls}" style="width:${fcBar}%"></div></div>
+        ${pvpEmpty ? '<span class="cell-mute">—</span>' : fc + '%'}
+        ${!pvpEmpty ? `<div class="fc-bar-wrap"><div class="fc-bar-fill ${fcCls}" style="width:${fcBar}%"></div></div>` : ''}
       </td>
-      <td class="r" style="font-weight:600;">€${(((d.precio_venta||0) - d.costo_calc)).toFixed(2)}</td>
+      <td class="r" style="font-weight:600;">${margenCell}</td>
       <td class="r">${sugCell}</td>
       <td><div style="display:flex;gap:4px;" onclick="event.stopPropagation()">
         <button class="btn-sec" style="padding:4px 8px;font-size:11px;" onclick="openPlatoPanel(${d.id})">✏</button>
