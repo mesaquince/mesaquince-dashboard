@@ -5721,5 +5721,33 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 });
 </script>
+
+<!-- ════════ MESAQUINCE OS — PAGO → SHEET v1 ════════ -->
+<script>
+async function submitDeudaPago(deudaId) {
+  const importe = parseFloat(qEl('dp-importe').value) || 0;
+  const fecha   = qEl('dp-fecha').value;
+  const banco   = qEl('dp-banco').value;
+  const nota    = qEl('dp-nota').value.trim();
+  if (!importe || importe <= 0) { toast('Ingresá un importe válido.', 'err'); return; }
+
+  let okSheet = false;
+  try {
+    const d = await dbGet('deuda', deudaId);
+    const concepto = d ? d.concepto : deudaId;
+    await fetch(`${MQ_SDB}?sheet=Pagos`, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ data: [{ fecha, deuda_id: deudaId, concepto, importe, banco, nota }] })
+    });
+    okSheet = true;
+  } catch (e) { console.warn('No se pudo escribir el pago en el Sheet:', e); }
+
+  await dbAdd('deuda_pagos', { deuda_id: deudaId, importe, fecha, banco, nota, ts: Date.now() });
+  toast(okSheet ? `Pago de ${fmt(importe)} registrado en la hoja ✓`
+                : `Pago guardado local — revisá conexión a la hoja`, okSheet ? 'ok' : 'err');
+  closePanel();
+  refreshDeuda();
+}
+</script>
 </body>
 </html>
