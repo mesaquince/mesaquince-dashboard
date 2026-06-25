@@ -3682,7 +3682,6 @@ const VENTAS_SEED = [
   {fecha:'2026-05-16',servicio:'cena',ventas:1324,cubiertos:35,propina:0,notas:''},
   {fecha:'2026-05-19',servicio:'cena',ventas:829,cubiertos:23,propina:0,notas:''},
   {fecha:'2026-05-20',servicio:'cena',ventas:990,cubiertos:25,propina:20,notas:''},
-  {fecha:'2026-05-21',servicio:'almuerzo',ventas:990,cubiertos:25,propina:20,notas:''},
 ];
 
 // ── ESCANDALLOS SEED — carta actual Mayo 2026 + unidades reales Loomis 26/05 ───
@@ -5269,6 +5268,458 @@ async function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+</script>
+
+<!-- ════════ MESAQUINCE OS — UPGRADE PACK v2.2 ════════ -->
+<script>
+var MQ_STORES = ['ventas','config','movimientos','costos_fijos','pagos_fijos',
+  'facturas','deuda','deuda_pagos','escandallos','ingredientes','precio_historico'];
+
+/* ---------- 1. FIX SEED DEUDA + RESET ---------- */
+async function seedDeuda() {
+  const storedVer = parseInt(localStorage.getItem('deuda_seed_ver') || '0');
+  const existing = await dbGetAll('deuda');
+  if (storedVer >= DEUDA_SEED_VERSION && existing.length > 0) return;
+  for (const d of DEUDA_SEED) {
+    const ex = await dbGet('deuda', d.id);
+    if (ex) await dbPut('deuda', { ...ex, ...d });
+    else    await dbPut('deuda', { ...d, pagado: 0 });
+  }
+  const allExisting = await dbGetAll('deuda');
+  const seedIds = new Set(DEUDA_SEED.map(d => d.id));
+  for (const ex of allExisting) {
+    if (/^(PROV|NOM|BAN|FIJ|PER|FIS|OTR)-/.test(ex.id)) {
+      if (!seedIds.has(ex.id)) await dbDelete('deuda', ex.id);
+    }
+  }
+  localStorage.setItem('deuda_seed_ver', String(DEUDA_SEED_VERSION));
+}
+
+function resetDB() {
+  try { localStorage.removeItem('deuda_seed_ver'); } catch (e) {}
+  const req = indexedDB.deleteDatabase(DB_NAME);
+  req.onsuccess = () => location.reload();
+  req.onerror   = () => location.reload();
+  req.onblocked = () => location.reload();
+}
+
+/* ---------- 2. EFECTIVO / TARJETA EN EL CIERRE ---------- */
+function MQ_recalcTarjeta() {
+  const tot = parseFloat(document.getElementById('v-ventas').value) || 0;
+  const ef  = parseFloat(document.getElementById('v-efectivo').value) || 0;
+  const tj  = Math.max(0, tot - ef);
+  const el  = document.getElementById('v-tarjeta');
+  if (el) el.value = tj ? tj.toFixed(2) : '';
+}
+
+function openVentaPanel(editId = null) {
+  const t = today();
+  const isEdit = editId != null;
+  openPanel('Registrar cierre', '',
+    `<div id="form-venta">
+      <input type="hidden" id="v-edit-id" value="${isEdit ? editId : ''}"/>
+      ${isEdit ? '<div style="background:var(--amber-ll);border-radius:8px;padding:9px 12px;margin-bottom:12px;font-size:12px;color:#92400e;font-weight:600;">✏ Modo edición — reemplaza el registro original</div>' : ''}
+      <div class="fg">
+        <label class="fl">Fecha</label>
+        <input class="fi" type="date" id="v-fecha" value="${t}"/>
+      </div>
+      <div class="fg">
+        <label class="fl">Servicio</label>
+        <select class="fi" id="v-servicio">
+          <option value="cena">🌙 Cena</option>
+          <option value="almuerzo">☀️ Almuerzo</option>
+          <option value="tardeo">🌅 Tardeo</option>
+        </select>
+      </div>
+      <div class="fg-row c2">
+        <div><label class="fl">Ventas TOTAL (€)</label><input class="fi" type="number" id="v-ventas" placeholder="0.00" step="0.01" min="0" inputmode="decimal" oninput="MQ_recalcTarjeta()"/></div>
+        <div><label class="fl">Cubiertos</label><input class="fi" type="number" id="v-cubiertos" placeholder="0" min="0" inputmode="numeric"/></div>
+      </div>
+      <div class="fg-row c2">
+        <div><label class="fl">💵 Efectivo (€)</label><input class="fi" type="number" id="v-efectivo" placeholder="0.00" step="0.01" min="0" inputmode="decimal" oninput="MQ_recalcTarjeta()"/></div>
+        <div><label class="fl">💳 Tarjeta (€) <span style="font-weight:400;color:var(--g300);">auto</span></label><input class="fi" type="number" id="v-tarjeta" placeholder="0.00" step="0.01" min="0" inputmode="decimal" readonly style="background:var(--g50,#f6f6f6);"/></div>
+      </div>
+      <div style="font-size:11px;color:var(--g400);margin:-4px 0 12px;">Tarjeta se calcula solo: Total − Efectivo. Incluí en el TOTAL las mesas cerradas a 0 valuadas a lo realmente consumido.</div>
+      <div class="fg">
+        <label class="fl">Propina (€) <span style="font-weight:400;color:var(--g300);">opcional</span></label>
+        <input class="fi" type="number" id="v-propina" placeholder="0.00" step="0.01" min="0" inputmode="decimal"/>
+      </div>
+      <div class="fg">
+        <label class="fl">Notas <span style="font-weight:400;color:var(--g300);">opcional</span></label>
+        <input class="fi" type="text" id="v-notas" placeholder="Lleno, evento, descuento mkt..."/>
+      </div>
+      <button class="btn-primary" id="btn-venta" onclick="submitVenta()">${isEdit ? 'Actualizar registro' : 'Guardar cierre'}</button>
+    </div>`
+  );
+  if (isEdit) loadVentaForEdit(editId);
+}
+
+async function loadVentaForEdit(id) {
+  const v = await dbGet('ventas', id);
+  if (!v) return;
+  document.getElementById('v-fecha').value     = v.fecha;
+  document.getElementById('v-servicio').value  = v.servicio;
+  document.getElementById('v-ventas').value    = v.ventas;
+  document.getElementById('v-cubiertos').value = v.cubiertos;
+  document.getElementById('v-propina').value   = v.propina || '';
+  document.getElementById('v-notas').value     = v.notas || '';
+  const ef = document.getElementById('v-efectivo');
+  if (ef) ef.value = (v.efectivo != null ? v.efectivo : '');
+  MQ_recalcTarjeta();
+}
+
+async function submitVenta() {
+  const btn = document.getElementById('btn-venta');
+  const editId = document.getElementById('v-edit-id').value;
+  const fecha     = document.getElementById('v-fecha').value;
+  const servicio  = document.getElementById('v-servicio').value;
+  const ventas    = parseFloat(document.getElementById('v-ventas').value) || 0;
+  const cubiertos = parseInt(document.getElementById('v-cubiertos').value) || 0;
+  const propina   = parseFloat(document.getElementById('v-propina').value) || 0;
+  const notas     = document.getElementById('v-notas').value.trim();
+  const efEl = document.getElementById('v-efectivo');
+  const efectivo = efEl ? (parseFloat(efEl.value) || 0) : 0;
+  let tarjeta = parseFloat((document.getElementById('v-tarjeta') || {}).value);
+  if (isNaN(tarjeta)) tarjeta = Math.max(0, ventas - efectivo);
+
+  if (!fecha || ventas <= 0) { toast('Completá fecha y ventas.', 'err'); return; }
+  if (efectivo > ventas + 0.01) { toast('El efectivo no puede superar el total.', 'err'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Guardando…';
+
+  const obj = { fecha, servicio, ventas, cubiertos, propina, efectivo, tarjeta, notas, ts: Date.now() };
+  try {
+    if (editId) { obj.id = parseInt(editId); await dbPut('ventas', obj); toast('Registro actualizado ✓'); }
+    else        { await dbAdd('ventas', obj); toast('Cierre guardado ✓'); }
+
+    if (CFG.SCRIPT_URL) syncToGSheet({ type: 'venta', ...obj });
+
+    closePanel();
+    refreshVentas();
+    MQ_afterWrite();
+  } catch (e) {
+    toast('Error guardando: ' + e.message, 'err');
+    btn.disabled = false;
+    btn.innerHTML = editId ? 'Actualizar' : 'Guardar cierre';
+  }
+}
+
+/* ---------- 2b. INFORME MENSUAL CON EFECTIVO / TARJETA ---------- */
+function MQ_ensureMonthlyCols() {
+  const thr = document.querySelector('#monthly-tbl thead tr');
+  if (thr && !thr.dataset.mqCols) {
+    const ths = thr.querySelectorAll('th');
+    if (ths[2]) {
+      const thTj = document.createElement('th'); thTj.className = 'r'; thTj.textContent = '💳'; thTj.title = 'Tarjeta';
+      const thEf = document.createElement('th'); thEf.className = 'r'; thEf.textContent = '💵'; thEf.title = 'Efectivo';
+      ths[2].insertAdjacentElement('afterend', thTj);
+      ths[2].insertAdjacentElement('afterend', thEf);
+    }
+    thr.dataset.mqCols = '1';
+  }
+}
+function MQ_ensureMonthSummary() {
+  if (document.getElementById('mq-month-cashcard')) return;
+  const tbl = document.getElementById('monthly-tbl'); if (!tbl) return;
+  const tw = tbl.closest('.tbl-wrap'); if (!tw || !tw.parentNode) return;
+  const div = document.createElement('div'); div.id = 'mq-month-cashcard';
+  div.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;';
+  tw.parentNode.insertBefore(div, tw);
+}
+
+function refreshMonthlyTable(all, monthKey, year, month) {
+  MQ_ensureMonthlyCols();
+  MQ_ensureMonthSummary();
+  const monthRows = all.filter(v => v.fecha.startsWith(monthKey));
+  monthRows.sort((a, b) => b.fecha.localeCompare(a.fecha) || b.id - a.id);
+  const total = monthRows.reduce((s, v) => s + v.ventas, 0);
+  setEl('monthly-total', fmt(total));
+
+  const sumEf   = monthRows.reduce((s, v) => s + (v.efectivo || 0), 0);
+  const sumProp = monthRows.reduce((s, v) => s + (v.propina || 0), 0);
+  const sumTj   = total - sumEf;
+  const sumEl = document.getElementById('mq-month-cashcard');
+  if (sumEl) {
+    const chip = (lbl, val, col) =>
+      `<div style="background:var(--g50,#f7f7f7);border:1px solid var(--g100,#ececec);border-radius:10px;padding:8px 12px;min-width:120px;">
+         <div style="font-size:10px;color:var(--g400);text-transform:uppercase;letter-spacing:.04em;">${lbl}</div>
+         <div style="font-size:16px;font-weight:800;color:${col};">${val}</div>
+       </div>`;
+    sumEl.innerHTML = monthRows.length
+      ? chip('💵 Efectivo', fmt2(sumEf), '#0f766e') +
+        chip('💳 Tarjeta/otros', fmt2(sumTj), '#1e3a8a') +
+        chip('🎁 Propinas', fmt2(sumProp), '#92400e')
+      : '';
+  }
+
+  if (!monthRows.length) {
+    document.getElementById('monthly-tbody').innerHTML =
+      `<tr><td colspan="10" style="text-align:center;color:var(--g400);padding:30px;">Sin registros para ${monthLabel(monthKey)}</td></tr>`;
+    return;
+  }
+  let html = '';
+  monthRows.forEach(v => {
+    const tk = v.cubiertos > 0 ? fmt2(v.ventas / v.cubiertos) : '—';
+    const ef = (v.efectivo != null) ? v.efectivo : null;
+    const tj = (v.tarjeta != null) ? v.tarjeta : (ef != null ? (v.ventas - ef) : null);
+    html += `<tr>
+      <td><strong>${dayName(v.fecha)}</strong> ${v.fecha.slice(5)}</td>
+      <td><span class="badge badge-gray">${v.servicio}</span></td>
+      <td class="r" style="font-weight:700;">${fmt2(v.ventas)}</td>
+      <td class="r" style="color:#0f766e;">${ef != null ? fmt2(ef) : '—'}</td>
+      <td class="r" style="color:#1e3a8a;">${tj != null ? fmt2(tj) : '—'}</td>
+      <td class="r">${v.cubiertos || '—'}</td>
+      <td class="r">${tk}</td>
+      <td class="r">${v.propina > 0 ? fmt2(v.propina) : '—'}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--g400);">${v.notas || ''}</td>
+      <td>
+        <button class="btn-sec" style="font-size:10px;padding:4px 8px;" onclick="openVentaPanel(${v.id})">✏</button>
+        <button class="btn-danger" style="font-size:10px;padding:4px 8px;margin-left:4px;" onclick="deleteVenta(${v.id})">✕</button>
+      </td>
+    </tr>`;
+  });
+  document.getElementById('monthly-tbody').innerHTML = html;
+}
+
+/* ---------- 3. BACKUP EXPORT / IMPORT (LOCAL) ---------- */
+async function MQ_dumpAll() {
+  const out = { _meta: { app: 'MesaquinceOS', version: '2.2', exported: new Date().toISOString() } };
+  for (const s of MQ_STORES) {
+    try { out[s] = await dbGetAll(s); } catch (e) { out[s] = []; }
+  }
+  return out;
+}
+async function MQ_clearStore(store) {
+  return new Promise((res, rej) => {
+    const tx = DB.transaction(store, 'readwrite');
+    const req = tx.objectStore(store).clear();
+    req.onsuccess = () => res();
+    req.onerror   = () => rej(req.error);
+  });
+}
+async function exportBackup() {
+  try {
+    const data = await MQ_dumpAll();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const d = new Date();
+    const stamp = d.toISOString().slice(0, 16).replace(/[:T]/g, '-');
+    a.href = url; a.download = `mesaquince-backup-${stamp}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    localStorage.setItem('mq_last_backup', d.toISOString());
+    MQ_updateBackupBadge();
+    toast('Backup descargado ✓');
+  } catch (e) { toast('Error en backup: ' + e.message, 'err'); }
+}
+function importBackup() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'application/json,.json';
+  inp.onchange = async () => {
+    const file = inp.files[0]; if (!file) return;
+    if (!confirm('Esto REEMPLAZA todos los datos actuales con los del archivo. Se descarga una copia de seguridad del estado actual antes de continuar. ¿Seguir?')) return;
+    try {
+      await exportBackup();
+      const text = await file.text();
+      const data = JSON.parse(text);
+      for (const s of MQ_STORES) {
+        if (!Array.isArray(data[s])) continue;
+        await MQ_clearStore(s);
+        for (const rec of data[s]) await dbPut(s, rec);
+      }
+      toast('Datos restaurados ✓ — recargando…');
+      setTimeout(() => location.reload(), 900);
+    } catch (e) { toast('Error restaurando: ' + e.message, 'err'); }
+  };
+  inp.click();
+}
+
+/* ---------- 4. GOOGLE SHEET COMO DB EN LA NUBE (snapshot) ---------- */
+var MQ_pushTimer = null;
+function MQ_afterWrite() {
+  if (CFG.SCRIPT_URL) {
+    clearTimeout(MQ_pushTimer);
+    MQ_pushTimer = setTimeout(() => MQ_cloudPush(true), 1500);
+  }
+}
+async function MQ_cloudPush(silent) {
+  if (!CFG.SCRIPT_URL) { if (!silent) toast('Configurá la URL de Google Sheet primero (botón ⚡).', 'err'); return; }
+  try {
+    const data = await MQ_dumpAll();
+    await fetch(CFG.SCRIPT_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'save_snapshot', blob: JSON.stringify(data) })
+    });
+    localStorage.setItem('mq_last_cloud', new Date().toISOString());
+    MQ_updateBackupBadge();
+    if (!silent) toast('Copia en la nube actualizada ✓');
+  } catch (e) { if (!silent) toast('Error nube: ' + e.message, 'err'); }
+}
+async function MQ_cloudPull() {
+  if (!CFG.SCRIPT_URL) { toast('Configurá la URL de Google Sheet primero (botón ⚡).', 'err'); return; }
+  if (!confirm('Bajar la copia de la nube REEMPLAZA tus datos locales. Se descarga un backup local automático antes. ¿Continuar?')) return;
+  try {
+    await exportBackup();
+    const url = CFG.SCRIPT_URL + (CFG.SCRIPT_URL.includes('?') ? '&' : '?') + 'action=get_snapshot&t=' + Date.now();
+    const r = await fetch(url);
+    const j = await r.json();
+    const blob = j.blob || j.data || '';
+    if (!blob) { toast('La nube todavía no tiene copia.', 'info'); return; }
+    const data = JSON.parse(blob);
+    for (const s of MQ_STORES) {
+      if (!Array.isArray(data[s])) continue;
+      await MQ_clearStore(s);
+      for (const rec of data[s]) await dbPut(s, rec);
+    }
+    toast('Datos bajados de la nube ✓ — recargando…');
+    setTimeout(() => location.reload(), 900);
+  } catch (e) { toast('Error bajando de la nube: ' + e.message + ' (revisá el deploy del script)', 'err'); }
+}
+
+/* ---------- 5. UI: botones + avisos ---------- */
+function MQ_updateBackupBadge() {
+  const b = document.getElementById('mq-btn-backup');
+  if (!b) return;
+  const last = localStorage.getItem('mq_last_backup');
+  b.title = last ? ('Último backup: ' + new Date(last).toLocaleString('es-ES')) : 'Nunca respaldaste — hacelo ahora';
+  b.style.color = last ? 'var(--g300)' : '#f87171';
+}
+function MQ_initUI() {
+  const tr = document.querySelector('.topbar-right');
+  if (tr && !document.getElementById('mq-btn-backup')) {
+    const mk = (id, txt, fn, title) => {
+      const b = document.createElement('button');
+      b.id = id; b.textContent = txt; b.title = title || '';
+      b.style.cssText = 'font-size:11px;padding:6px 10px;border-radius:8px;margin-left:6px;background:rgba(255,255,255,0.06);color:var(--g300);border:1px solid rgba(255,255,255,0.12);cursor:pointer;';
+      b.onclick = fn; return b;
+    };
+    tr.appendChild(mk('mq-btn-backup',   '⬇ Backup',    exportBackup, 'Descargar copia de toda la base'));
+    tr.appendChild(mk('mq-btn-restore',  '⬆ Restaurar', importBackup, 'Restaurar desde un archivo de backup'));
+    tr.appendChild(mk('mq-btn-cloudup',  '☁⬆',          () => MQ_cloudPush(false), 'Subir copia a Google Sheet'));
+    tr.appendChild(mk('mq-btn-clouddown','☁⬇',          MQ_cloudPull, 'Bajar copia desde Google Sheet'));
+  }
+  MQ_updateBackupBadge();
+  try {
+    const last = localStorage.getItem('mq_last_backup');
+    const days = last ? (Date.now() - new Date(last)) / 86400000 : 999;
+    if (days > 7) {
+      setTimeout(() => toast('⚠ Hacé un backup: ' + (last ? 'hace ' + Math.floor(days) + ' días que no respaldás.' : 'nunca respaldaste.'), 'err'), 2800);
+    }
+  } catch (e) {}
+}
+document.addEventListener('DOMContentLoaded', MQ_initUI);
+</script>
+
+<!-- ════════ MESAQUINCE OS — SHEET SYNC v1 (deuda en vivo desde Google Sheet) ════════ -->
+<script>
+var MQ_SDB = 'https://script.google.com/macros/s/AKfycbwICx_HrAvhi1KHQQ38y6THjFtO156HbYqYs97It3wxDxjLSYjEZZN5JvPoOajPy32eHg/exec';
+
+try { CFG.SCRIPT_URL = MQ_SDB; } catch (e) {}
+
+function MQ_num(s) {
+  if (s == null) return 0;
+  if (typeof s === 'number') return s;
+  s = String(s).trim();
+  if (!s) return 0;
+  if (s.includes(',') && s.includes('.')) s = s.replace(/\./g, '').replace(',', '.');
+  else if (s.includes(',')) s = s.replace(',', '.');
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+function MQ_lc(rows) {
+  return rows.map(r => { const n = {}; Object.keys(r).forEach(k => n[String(k).toLowerCase().trim()] = r[k]); return n; });
+}
+async function MQ_fetchTab(tab) {
+  const r = await fetch(`${MQ_SDB}?sheet=${encodeURIComponent(tab)}&t=${Date.now()}`);
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const j = await r.json();
+  if (!Array.isArray(j)) throw new Error('respuesta inválida');
+  return j;
+}
+
+async function MQ_loadDeudaFromSheet() {
+  const [dRaw, pRaw] = await Promise.all([MQ_fetchTab('Deuda'), MQ_fetchTab('Pagos')]);
+  const deuda = MQ_lc(dRaw);
+  let pagos = MQ_lc(pRaw).map((r, i) => ({ ...r, _idx: i }));
+
+  const voided = new Set();
+  pagos.forEach(r => { const m = String(r.nota || '').match(/^VOID:(\d+)/); if (m) voided.add(parseInt(m[1])); });
+  pagos = pagos.filter(r => r.deuda_id && r.deuda_id !== 'undefined' && !voided.has(r._idx) && MQ_num(r.importe) > 0);
+
+  const baseOf = x => { const m = String(x.nota || '').match(/#BASE:([^\s|]+)/); return m ? m[1] : null; };
+  const hidden = new Set(deuda.flatMap(x => { const m = String(x.nota || '').match(/#HIDDEN:([^\s|]+)/); return m ? [m[1]] : []; }));
+  const pagById = {};
+  pagos.forEach(p => { pagById[p.deuda_id] = (pagById[p.deuda_id] || 0) + MQ_num(p.importe); });
+
+  const parents = deuda.filter(x => !baseOf(x) && !hidden.has(x.id));
+  const deudaRecs = [], pagosRecs = [];
+  for (const dd of parents) {
+    const hijos = deuda.filter(x => baseOf(x) === dd.id);
+    const adicOrig = hijos.reduce((s, x) => s + MQ_num(x.importe_original), 0);
+    const orig = MQ_num(dd.importe_original) + adicOrig;
+    const pagBase = MQ_num(dd.pagado) + (pagById[dd.id] || 0);
+    const adicPag = hijos.reduce((s, x) => s + MQ_num(x.pagado) + (pagById[x.id] || 0), 0);
+    const pagado = pagBase + adicPag;
+    deudaRecs.push({
+      id: dd.id, categoria: dd.categoria, concepto: dd.concepto, urgencia: dd.urgencia,
+      importe_original: orig, en_plan: String(dd.en_plan).toUpperCase() === 'SI', nota: dd.nota || ''
+    });
+    if (pagado > 0) pagosRecs.push({ deuda_id: dd.id, importe: pagado, fecha: '', concepto: 'Pagado (sync Sheet)', banco: '', ts: Date.now() });
+  }
+
+  await MQ_clearStore('deuda');
+  for (const r of deudaRecs) await dbPut('deuda', r);
+  await MQ_clearStore('deuda_pagos');
+  for (const r of pagosRecs) await dbAdd('deuda_pagos', r);
+  return deudaRecs.length;
+}
+
+async function seedDeuda() {
+  try {
+    const n = await MQ_loadDeudaFromSheet();
+    localStorage.setItem('deuda_seed_ver', String(DEUDA_SEED_VERSION));
+    localStorage.setItem('mq_last_deuda_sync', new Date().toISOString());
+    console.log('[OS] Deuda sincronizada del Sheet:', n, 'acreedores');
+    return;
+  } catch (e) {
+    console.warn('[OS] No se pudo bajar la deuda del Sheet, uso copia local:', e);
+    const existing = await dbGetAll('deuda');
+    if (existing.length > 0) return;
+    for (const dd of DEUDA_SEED) {
+      const ex = await dbGet('deuda', dd.id);
+      if (ex) await dbPut('deuda', { ...ex, ...dd });
+      else    await dbPut('deuda', { ...dd, pagado: 0 });
+    }
+    localStorage.setItem('deuda_seed_ver', String(DEUDA_SEED_VERSION));
+  }
+}
+
+async function MQ_syncDeudaNow() {
+  toast('Sincronizando deuda…', 'info');
+  try {
+    const n = await MQ_loadDeudaFromSheet();
+    localStorage.setItem('mq_last_deuda_sync', new Date().toISOString());
+    if (typeof refreshDeuda === 'function') refreshDeuda();
+    toast(`Deuda actualizada del Sheet ✓ (${n} acreedores)`);
+  } catch (e) {
+    toast('No se pudo sincronizar: ' + e.message, 'err');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  const tr = document.querySelector('.topbar-right');
+  if (tr && !document.getElementById('mq-btn-syncdeuda')) {
+    const b = document.createElement('button');
+    b.id = 'mq-btn-syncdeuda'; b.textContent = '↻ Deuda';
+    b.title = 'Re-sincronizar la deuda desde el Google Sheet';
+    b.style.cssText = 'font-size:11px;padding:6px 10px;border-radius:8px;margin-left:6px;background:rgba(255,255,255,0.06);color:var(--g300);border:1px solid rgba(255,255,255,0.12);cursor:pointer;';
+    b.onclick = MQ_syncDeudaNow;
+    tr.appendChild(b);
+  }
+});
 </script>
 </body>
 </html>
