@@ -5749,5 +5749,96 @@ async function submitDeudaPago(deudaId) {
   refreshDeuda();
 }
 </script>
+
+<!-- ════════ MESAQUINCE OS — PAGOS FIX v2 (anti doble-conteo + anular en hoja) ════════ -->
+<script>
+async function MQ_loadDeudaFromSheet() {
+  const [dRaw, pRaw] = await Promise.all([MQ_fetchTab('Deuda'), MQ_fetchTab('Pagos')]);
+  const deuda = MQ_lc(dRaw);
+  const pagosArr = MQ_lc(pRaw);
+
+  const voided = new Set();
+  pagosArr.forEach((r, i) => { const m = String(r.nota || '').match(/^VOID:(\d+)/); if (m) voided.add(parseInt(m[1])); });
+
+  const baseOf = x => { const m = String(x.nota || '').match(/#BASE:([^\s|]+)/); return m ? m[1] : null; };
+  const hidden = new Set(deuda.flatMap(x => { const m = String(x.nota || '').match(/#HIDDEN:([^\s|]+)/); return m ? [m[1]] : []; }));
+  const parentOfChild = {};
+  deuda.forEach(x => { const b = baseOf(x); if (b) parentOfChild[x.id] = b; });
+
+  const parents = deuda.filter(x => !baseOf(x) && !hidden.has(x.id));
+  const parentIds = new Set(parents.map(p => p.id));
+
+  const deudaRecs = parents.map(dd => {
+    const hijos = deuda.filter(x => baseOf(x) === dd.id);
+    const orig = MQ_num(dd.importe_original) + hijos.reduce((s, x) => s + MQ_num(x.importe_original), 0);
+    return {
+      id: dd.id, categoria: dd.categoria, concepto: dd.concepto, urgencia: dd.urgencia,
+      importe_original: orig, en_plan: String(dd.en_plan).toUpperCase() === 'SI', nota: dd.nota || ''
+    };
+  });
+
+  const pagosRecs = [];
+  pagosArr.forEach((r, i) => {
+    if (voided.has(i)) return;
+    let did = r.deuda_id;
+    if (!did || did === 'undefined' || did === '_void_') return;
+    if (MQ_num(r.importe) <= 0) return;
+    if (parentOfChild[did]) did = parentOfChild[did];
+    if (!parentIds.has(did)) return;
+    pagosRecs.push({
+      deuda_id: did, importe: MQ_num(r.importe), fecha: String(r.fecha || ''),
+      banco: String(r.banco || ''), nota: String(r.nota || ''), concepto: String(r.concepto || ''),
+      sheet_idx: i, ts: Date.now()
+    });
+  });
+
+  await MQ_clearStore('deuda');
+  for (const r of deudaRecs) await dbPut('deuda', r);
+  await MQ_clearStore('deuda_pagos');
+  for (const r of pagosRecs) await dbAdd('deuda_pagos', r);
+  return deudaRecs.length;
+}
+
+async function submitDeudaPago(deudaId) {
+  if (window._mqPaying) return;
+  const importe = parseFloat(qEl('dp-importe').value) || 0;
+  const fecha   = qEl('dp-fecha').value;
+  const banco   = qEl('dp-banco').value;
+  const nota    = qEl('dp-nota').value.trim();
+  if (!importe || importe <= 0) { toast('Ingresá un importe válido.', 'err'); return; }
+  window._mqPaying = true;
+  try {
+    const d = await dbGet('deuda', deudaId);
+    const concepto = d ? d.concepto : deudaId;
+    await fetch(`${MQ_SDB}?sheet=Pagos`, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ data: [{ fecha, deuda_id: deudaId, concepto, importe, banco, nota }] })
+    });
+    closePanel();
+    toast(`Pago de ${fmt(importe)} registrado ✓ — actualizando…`);
+    setTimeout(async () => { try { await MQ_loadDeudaFromSheet(); if (typeof refreshDeuda === 'function') refreshDeuda(); } catch (e) {} window._mqPaying = false; }, 1700);
+  } catch (e) {
+    window._mqPaying = false;
+    toast('No se pudo guardar en la hoja — revisá conexión', 'err');
+  }
+}
+
+async function deleteDeudaPago(id) {
+  const p = await dbGet('deuda_pagos', id);
+  if (!p) return;
+  if (!confirm(`¿Anular este pago de ${fmt(p.importe)}? Queda marcado como anulado en la hoja.`)) return;
+  if (p.sheet_idx != null) {
+    try {
+      await fetch(`${MQ_SDB}?sheet=Pagos`, {
+        method: 'POST', headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ data: [{ fecha: today(), deuda_id: '_void_', concepto: '_void_', importe: 0, banco: '', nota: 'VOID:' + p.sheet_idx }] })
+      });
+    } catch (e) { toast('No se pudo anular en la hoja: ' + e.message, 'err'); return; }
+  }
+  await dbDelete('deuda_pagos', id);
+  toast('Pago anulado ✓ — actualizando…');
+  setTimeout(async () => { try { await MQ_loadDeudaFromSheet(); if (typeof refreshDeuda === 'function') refreshDeuda(); } catch (e) {} }, 1700);
+}
+</script>
 </body>
 </html>
