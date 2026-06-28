@@ -5840,5 +5840,182 @@ async function deleteDeudaPago(id) {
   setTimeout(async () => { try { await MQ_loadDeudaFromSheet(); if (typeof refreshDeuda === 'function') refreshDeuda(); } catch (e) {} }, 1700);
 }
 </script>
+
+<!-- ════════ MESAQUINCE OS — MÓDULO EFECTIVO (caja real + reserva) ════════ -->
+<script>
+var MQ_EF_CATS = ['Extra sala', 'Extra cocina', 'Katty / limpieza', 'Pica / propina personal', 'Compra cash (proveedor)', 'Retiro socio', 'Servicios', 'Varios'];
+
+async function MQ_efGet() { return await dbGetConfig('mq_efectivo', { saldo: 0, reserva: 0, movimientos: [] }); }
+async function MQ_efSave(d) { await dbSetConfig('mq_efectivo', d); }
+
+async function MQ_efApply(tipo, importe, cat, concepto, fecha) {
+  const d = await MQ_efGet();
+  importe = Math.abs(parseFloat(importe) || 0);
+  let stored = importe;
+  if (tipo === 'ingreso') d.saldo += importe;
+  else if (tipo === 'egreso') d.saldo -= importe;
+  else if (tipo === 'a_reserva') { d.saldo -= importe; d.reserva += importe; }
+  else if (tipo === 'de_reserva') { d.reserva -= importe; d.saldo += importe; }
+  else if (tipo === 'ajuste') { stored = importe - d.saldo; d.saldo = importe; }
+  const mov = { id: 'E' + Date.now() + Math.random().toString(36).slice(2, 6), fecha: fecha || today(), tipo, cat: cat || '', concepto: concepto || '', importe: stored, ts: Date.now() };
+  d.movimientos = d.movimientos || [];
+  d.movimientos.push(mov);
+  await MQ_efSave(d);
+}
+
+async function MQ_efDelete(id) {
+  if (!confirm('¿Eliminar este movimiento de efectivo?')) return;
+  const d = await MQ_efGet();
+  const m = (d.movimientos || []).find(x => x.id === id);
+  if (!m) return;
+  if (m.tipo === 'ingreso') d.saldo -= m.importe;
+  else if (m.tipo === 'egreso') d.saldo += m.importe;
+  else if (m.tipo === 'a_reserva') { d.saldo += m.importe; d.reserva -= m.importe; }
+  else if (m.tipo === 'de_reserva') { d.reserva += m.importe; d.saldo -= m.importe; }
+  else if (m.tipo === 'ajuste') d.saldo -= m.importe;
+  d.movimientos = d.movimientos.filter(x => x.id !== id);
+  await MQ_efSave(d);
+  toast('Movimiento eliminado.', 'info');
+  MQ_renderEfectivo();
+}
+
+async function MQ_renderEfectivo() {
+  const d = await MQ_efGet();
+  setEl('mq-ef-saldo', fmt(d.saldo));
+  setEl('mq-ef-reserva', fmt(d.reserva));
+  setEl('mq-ef-total', fmt((d.saldo || 0) + (d.reserva || 0)));
+  const movs = (d.movimientos || []).slice().sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 80);
+  const tb = document.getElementById('mq-ef-tbody');
+  if (!tb) return;
+  if (!movs.length) { tb.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--g400);padding:22px;">Sin movimientos. Tocá "＋ Movimiento" o "📂 Abrir caja".</td></tr>`; return; }
+  const LBL = { ingreso: '📈 Ingreso', egreso: '📉 Egreso', a_reserva: '🔒 A reserva', de_reserva: '🔓 De reserva', ajuste: '🛠 Ajuste caja' };
+  tb.innerHTML = movs.map(m => {
+    const pos = (m.tipo === 'ingreso' || m.tipo === 'de_reserva' || (m.tipo === 'ajuste' && m.importe >= 0));
+    const col = pos ? 'var(--green)' : 'var(--red)';
+    const sg = pos ? '+' : '−';
+    return `<tr>
+      <td style="font-size:11px;color:var(--g500);">${m.fecha || ''}</td>
+      <td>${LBL[m.tipo] || m.tipo}${m.cat ? ` · <span style="color:var(--g500);font-size:11px;">${m.cat}</span>` : ''}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.concepto || '—'}</td>
+      <td class="r" style="font-weight:800;color:${col};">${sg}${fmt(Math.abs(m.importe))}</td>
+      <td><button class="btn-danger" style="font-size:10px;padding:4px 8px;" onclick="MQ_efDelete('${m.id}')">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function MQ_efTipoChange() {
+  const t = qEl('ef-tipo') ? qEl('ef-tipo').value : '';
+  const w = document.getElementById('ef-cat-wrap');
+  if (w) w.style.display = (t === 'egreso') ? 'block' : 'none';
+  const il = document.getElementById('ef-imp-label');
+  if (il) il.textContent = (t === 'ajuste') ? 'Saldo real en caja (€)' : 'Importe (€)';
+}
+
+function MQ_openEfectivoMov(preTipo) {
+  const t = today();
+  openPanel('Movimiento de efectivo', '', `
+    <div class="fg">
+      <label class="fl">Tipo</label>
+      <select class="fi" id="ef-tipo" onchange="MQ_efTipoChange()">
+        <option value="egreso">📉 Egreso — pago en efectivo</option>
+        <option value="ingreso">📈 Ingreso — entra efectivo</option>
+        <option value="a_reserva">🔒 Guardar en reserva</option>
+        <option value="de_reserva">🔓 Sacar de la reserva</option>
+        <option value="ajuste">🛠 Abrir / ajustar caja (fijar saldo)</option>
+      </select>
+    </div>
+    <div class="fg" id="ef-cat-wrap">
+      <label class="fl">Categoría</label>
+      <select class="fi" id="ef-cat">${MQ_EF_CATS.map(c => `<option>${c}</option>`).join('')}</select>
+    </div>
+    <div class="fg-row c2">
+      <div><label class="fl" id="ef-imp-label">Importe (€)</label><input class="fi" type="number" id="ef-importe" placeholder="0.00" step="0.01" min="0" inputmode="decimal"/></div>
+      <div><label class="fl">Fecha</label><input class="fi" type="date" id="ef-fecha" value="${t}"/></div>
+    </div>
+    <div class="fg">
+      <label class="fl">Concepto <span style="font-weight:400;color:var(--g300);">opcional</span></label>
+      <input class="fi" type="text" id="ef-concepto" placeholder="Katty, extra sala, pica, compra cash..."/>
+    </div>
+    <button class="btn-primary" onclick="MQ_efSubmit()">Registrar</button>
+  `);
+  if (preTipo && qEl('ef-tipo')) qEl('ef-tipo').value = preTipo;
+  MQ_efTipoChange();
+}
+
+async function MQ_efSubmit() {
+  const tipo = qEl('ef-tipo').value;
+  const importe = parseFloat(qEl('ef-importe').value) || 0;
+  const fecha = qEl('ef-fecha').value;
+  const concepto = qEl('ef-concepto').value.trim();
+  const cat = (tipo === 'egreso') ? qEl('ef-cat').value : '';
+  if (importe <= 0 && tipo !== 'ajuste') { toast('Ingresá un importe válido.', 'err'); return; }
+  await MQ_efApply(tipo, importe, cat, concepto, fecha);
+  toast('Movimiento registrado ✓');
+  closePanel();
+  MQ_renderEfectivo();
+}
+
+function refreshTab(id) {
+  if (id === 'ventas') refreshVentas();
+  if (id === 'menu') refreshMenu();
+  if (id === 'recetario') refreshRecetario();
+  if (id === 'tesoreria') refreshTesoreria();
+  if (id === 'facturas') refreshFacturas();
+  if (id === 'deuda') refreshDeuda();
+  if (id === 'efectivo') MQ_renderEfectivo();
+}
+function fabAction() {
+  if (state.tab === 'ventas') openVentaPanel();
+  else if (state.tab === 'tesoreria') openCashEntry();
+  else if (state.tab === 'menu') openPlatoPanel();
+  else if (state.tab === 'efectivo') MQ_openEfectivoMov('egreso');
+  else openPanel('Nuevo registro', '', '<p style="color:var(--g400);font-size:13px;">Panel disponible próximamente.</p>');
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  if (document.getElementById('tab-efectivo')) return;
+  const PANEL = `
+  <div class="tab-panel" id="tab-efectivo">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+      <div class="section-title">💵 Efectivo — Caja real (fuera de banco)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn-sec" onclick="MQ_openEfectivoMov('ajuste')">📂 Abrir / ajustar caja</button>
+        <button class="btn-sec" onclick="MQ_openEfectivoMov('a_reserva')">🔒 A reserva</button>
+        <button class="btn-primary" onclick="MQ_openEfectivoMov('egreso')">＋ Movimiento</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:18px;">
+      <div class="cash-card highlight"><div class="cash-label">💵 Efectivo disponible</div><div class="cash-val amber" id="mq-ef-saldo">€—</div><div style="font-size:11px;color:var(--g500);margin-top:6px;">En caja, ahora</div></div>
+      <div class="cash-card"><div class="cash-label">🔒 Reserva / Tesoro</div><div class="cash-val green" id="mq-ef-reserva">€—</div><div style="font-size:11px;color:var(--g500);margin-top:6px;">Guardado aparte</div></div>
+      <div class="cash-card"><div class="cash-label">Σ Total en mano</div><div class="cash-val" id="mq-ef-total">€—</div><div style="font-size:11px;color:var(--g500);margin-top:6px;">Caja + reserva</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:12px;">🔄 Movimientos de efectivo</div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>Fecha</th><th>Tipo</th><th>Concepto</th><th class="r">Importe</th><th></th></tr></thead>
+          <tbody id="mq-ef-tbody"><tr><td colspan="5" style="text-align:center;color:var(--g400);padding:22px;">Sin movimientos.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+  const ref = document.getElementById('tab-tesoreria');
+  if (ref && ref.parentNode) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = PANEL.trim();
+    ref.parentNode.insertBefore(tmp.firstElementChild, ref.nextSibling);
+  }
+  const nav = document.getElementById('tabnav');
+  if (nav) {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn';
+    btn.setAttribute('onclick', "switchTab('efectivo')");
+    btn.textContent = '💵 Efectivo';
+    let after = null;
+    nav.querySelectorAll('.tab-btn').forEach(b => { if ((b.getAttribute('onclick') || '').includes("'tesoreria'")) after = b; });
+    if (after) nav.insertBefore(btn, after.nextSibling); else nav.appendChild(btn);
+  }
+});
+</script>
 </body>
 </html>
