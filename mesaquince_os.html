@@ -6017,5 +6017,153 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 });
 </script>
+
+<!-- ════════ MESAQUINCE OS — VENTAS EN LA NUBE (doble vía, tab VentasOS) ════════ -->
+<script>
+var MQ_VENTAS_TAB = 'VentasOS';
+function MQ_uid(p) { return (p || 'V') + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+function MQ_ventaToRow(v) {
+  return {
+    id: v.uid, fecha: v.fecha, servicio: v.servicio, ventas: v.ventas,
+    efectivo: (v.efectivo != null ? v.efectivo : ''), tarjeta: (v.tarjeta != null ? v.tarjeta : ''),
+    cubiertos: v.cubiertos, propina: v.propina, notas: v.notas || '',
+    ts: v.ts || Date.now(), estado: v.estado || 'activo'
+  };
+}
+async function MQ_ventasCloudPush(ventas) {
+  const data = ventas.map(MQ_ventaToRow);
+  return fetch(`${MQ_SDB}?sheet=${MQ_VENTAS_TAB}`, {
+    method: 'POST', headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ data })
+  });
+}
+async function MQ_ventasRebuildLocal(cloudRows) {
+  const rows = MQ_lc(cloudRows);
+  const byId = {};
+  rows.forEach(r => {
+    const id = r.id; if (!id) return;
+    const ts = MQ_num(r.ts);
+    if (!byId[id] || ts >= byId[id]._ts) byId[id] = Object.assign({}, r, { _ts: ts });
+  });
+  const active = Object.values(byId).filter(r => String(r.estado || 'activo').toLowerCase() !== 'anulado' && r.fecha);
+  if (!active.length) return 0;
+  await MQ_clearStore('ventas');
+  for (const r of active) {
+    const o = {
+      uid: r.id, fecha: String(r.fecha), servicio: String(r.servicio || 'cena'),
+      ventas: MQ_num(r.ventas), cubiertos: MQ_num(r.cubiertos), propina: MQ_num(r.propina),
+      notas: String(r.notas || ''), ts: MQ_num(r.ts) || Date.now()
+    };
+    if (r.efectivo !== '' && r.efectivo != null) o.efectivo = MQ_num(r.efectivo);
+    if (r.tarjeta !== '' && r.tarjeta != null) o.tarjeta = MQ_num(r.tarjeta);
+    await dbAdd('ventas', o);
+  }
+  return active.length;
+}
+
+async function seedVentas() {
+  let cloud = null;
+  try { cloud = await MQ_fetchTab(MQ_VENTAS_TAB); } catch (e) { cloud = null; }
+  const local = await dbGetAll('ventas');
+
+  if (cloud === null) {
+    if (local.length === 0) {
+      for (const v of VENTAS_SEED) await dbAdd('ventas', Object.assign({}, v, { uid: MQ_uid(), ts: Date.now() }));
+    }
+    return;
+  }
+  if (local.length === 0 && cloud.length > 0) {
+    await MQ_ventasRebuildLocal(cloud);
+    localStorage.setItem('mq_ventas_sync', new Date().toISOString());
+    return;
+  }
+  if (local.length === 0 && cloud.length === 0) {
+    const seeded = [];
+    for (const v of VENTAS_SEED) { const o = Object.assign({}, v, { uid: MQ_uid(), ts: Date.now() }); await dbAdd('ventas', o); seeded.push(o); }
+    try { await MQ_ventasCloudPush(seeded); localStorage.setItem('mq_ventas_sync', new Date().toISOString()); } catch (e) {}
+    return;
+  }
+  if (local.length > 0 && cloud.length === 0) {
+    for (const v of local) { if (!v.uid) { v.uid = MQ_uid(); await dbPut('ventas', v); } }
+    const all = await dbGetAll('ventas');
+    try { await MQ_ventasCloudPush(all); localStorage.setItem('mq_ventas_sync', new Date().toISOString()); } catch (e) {}
+    return;
+  }
+  for (const v of local) { if (!v.uid) { v.uid = MQ_uid(); await dbPut('ventas', v); } }
+}
+
+async function MQ_syncVentasNow() {
+  toast('Sincronizando ventas…', 'info');
+  try {
+    const cloud = await MQ_fetchTab(MQ_VENTAS_TAB);
+    const n = await MQ_ventasRebuildLocal(cloud);
+    localStorage.setItem('mq_ventas_sync', new Date().toISOString());
+    if (typeof refreshVentas === 'function') refreshVentas();
+    toast(n ? `Ventas actualizadas de la nube ✓ (${n})` : 'La nube no tiene ventas todavía.', n ? 'ok' : 'info');
+  } catch (e) { toast('No se pudo sincronizar ventas: ' + e.message, 'err'); }
+}
+
+async function submitVenta() {
+  const btn = document.getElementById('btn-venta');
+  const editId = document.getElementById('v-edit-id').value;
+  const fecha = document.getElementById('v-fecha').value;
+  const servicio = document.getElementById('v-servicio').value;
+  const ventas = parseFloat(document.getElementById('v-ventas').value) || 0;
+  const cubiertos = parseInt(document.getElementById('v-cubiertos').value) || 0;
+  const propina = parseFloat(document.getElementById('v-propina').value) || 0;
+  const notas = document.getElementById('v-notas').value.trim();
+  const efEl = document.getElementById('v-efectivo');
+  const efectivo = efEl ? (parseFloat(efEl.value) || 0) : 0;
+  let tarjeta = parseFloat((document.getElementById('v-tarjeta') || {}).value);
+  if (isNaN(tarjeta)) tarjeta = Math.max(0, ventas - efectivo);
+
+  if (!fecha || ventas <= 0) { toast('Completá fecha y ventas.', 'err'); return; }
+  if (efectivo > ventas + 0.01) { toast('El efectivo no puede superar el total.', 'err'); return; }
+
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Guardando…';
+  const obj = { fecha, servicio, ventas, cubiertos, propina, efectivo, tarjeta, notas, ts: Date.now() };
+  try {
+    if (editId) {
+      obj.id = parseInt(editId);
+      const prev = await dbGet('ventas', obj.id);
+      obj.uid = (prev && prev.uid) ? prev.uid : MQ_uid();
+      await dbPut('ventas', obj);
+      toast('Registro actualizado ✓');
+    } else {
+      obj.uid = MQ_uid();
+      await dbAdd('ventas', obj);
+      toast('Cierre guardado ✓');
+    }
+    MQ_ventasCloudPush([obj]).catch(() => {});
+    closePanel();
+    refreshVentas();
+  } catch (e) {
+    toast('Error guardando: ' + e.message, 'err');
+    btn.disabled = false; btn.innerHTML = editId ? 'Actualizar' : 'Guardar cierre';
+  }
+}
+
+async function deleteVenta(id) {
+  if (!confirm('¿Eliminar este registro?')) return;
+  const v = await dbGet('ventas', id);
+  await dbDelete('ventas', id);
+  if (v && v.uid) { MQ_ventasCloudPush([Object.assign({}, v, { estado: 'anulado', ts: Date.now() })]).catch(() => {}); }
+  toast('Registro eliminado.', 'info');
+  refreshVentas();
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  const tr = document.querySelector('.topbar-right');
+  if (tr && !document.getElementById('mq-btn-syncventas')) {
+    const b = document.createElement('button');
+    b.id = 'mq-btn-syncventas'; b.textContent = '↻ Ventas';
+    b.title = 'Bajar ventas desde el Google Sheet (otro equipo)';
+    b.style.cssText = 'font-size:11px;padding:6px 10px;border-radius:8px;margin-left:6px;background:rgba(255,255,255,0.06);color:var(--g300);border:1px solid rgba(255,255,255,0.12);cursor:pointer;';
+    b.onclick = MQ_syncVentasNow;
+    tr.appendChild(b);
+  }
+});
+</script>
 </body>
 </html>
